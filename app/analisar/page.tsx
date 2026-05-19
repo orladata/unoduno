@@ -422,6 +422,26 @@ function ErrorState({ message, onRetry }: { readonly message: string; readonly o
   )
 }
 
+// Helper to extract and parse JSON safely from text that might contain markdown blocks or wrapper text
+function safeJSONParse(text: string) {
+  if (!text) return null
+  let cleanText = text.trim()
+
+  // Remove markdown JSON code blocks if present
+  if (cleanText.startsWith("```")) {
+    cleanText = cleanText.replace(/^```(?:json)?\n?/, "").replace(/```$/, "").trim()
+  }
+
+  // Find first { and last } to isolate the JSON object
+  const firstBrace = cleanText.indexOf("{")
+  const lastBrace = cleanText.lastIndexOf("}")
+  if (firstBrace !== -1 && lastBrace !== -1) {
+    cleanText = cleanText.slice(firstBrace, lastBrace + 1)
+  }
+
+  return JSON.parse(cleanText)
+}
+
 // ─── Main Inner Component ────────────────────────────────────────────────────
 
 function AnalisarInner() {
@@ -457,7 +477,7 @@ function AnalisarInner() {
   let analysisData = null
   try {
     if (assistantText && assistantText.trim().length > 0) {
-      analysisData = JSON.parse(assistantText)
+      analysisData = safeJSONParse(assistantText)
     }
   } catch (parseError) {
     // JSON parsing will fail while streaming - that's expected

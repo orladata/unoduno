@@ -63,57 +63,34 @@ export function useChatAPI(): UseChatReturn {
 
           let assistantContent = ''
           const decoder = new TextDecoder()
-          let buffer = ''
+
+          // Add a placeholder message for the assistant that we'll stream into
+          setMessages((prev) => [...prev, { role: 'assistant', content: '' }])
 
           while (true) {
             const { done, value } = await reader.read()
             if (done) break
 
-            buffer += decoder.decode(value, { stream: true })
-            const lines = buffer.split('\n')
-            buffer = lines.pop() || ''
+            const chunk = decoder.decode(value, { stream: true })
+            assistantContent += chunk
 
-            for (const line of lines) {
-              if (line.startsWith('data: ')) {
-                try {
-                  const jsonStr = line.slice(6)
-                  if (jsonStr && jsonStr !== '[DONE]') {
-                    const chunk = JSON.parse(jsonStr)
-                    if (chunk.choices?.[0]?.delta?.content) {
-                      assistantContent += chunk.choices[0].delta.content
-                    }
-                  }
-                } catch (e) {
-                  // Silently ignore JSON parse errors
+            // Update the assistant's message in real-time
+            setMessages((prev) => {
+              const updated = [...prev]
+              if (updated.length > 0) {
+                updated[updated.length - 1] = {
+                  role: 'assistant',
+                  content: assistantContent,
                 }
               }
-            }
-          }
-
-          // Process remaining buffer
-          if (buffer.trim() && buffer.startsWith('data: ')) {
-            try {
-              const jsonStr = buffer.slice(6)
-              if (jsonStr && jsonStr !== '[DONE]') {
-                const chunk = JSON.parse(jsonStr)
-                if (chunk.choices?.[0]?.delta?.content) {
-                  assistantContent += chunk.choices[0].delta.content
-                }
-              }
-            } catch (e) {
-              // Silently ignore
-            }
+              return updated
+            })
           }
 
           if (!assistantContent) {
             throw new Error('Nenhuma resposta recebida do servidor')
           }
 
-          const assistantMessage: Message = {
-            role: 'assistant',
-            content: assistantContent,
-          }
-          setMessages((prev) => [...prev, assistantMessage])
           setStatus('idle')
         } catch (fetchError) {
           clearTimeout(timeoutId)
