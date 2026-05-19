@@ -76,11 +76,8 @@ async function fetchYouTubeTranscript(videoId: string): Promise<string | null> {
 export async function POST(req: Request) {
   const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY?.trim()
 
-  console.log("[v0] API Key check - Available:", !!apiKey, "Length:", apiKey?.length || 0)
-
   if (!apiKey) {
     console.error("[API] Google Generative AI API key is not configured")
-    console.log("[v0] Environment keys available:", Object.keys(process.env).filter(k => k.includes('GOOGLE') || k.includes('API') || k.includes('GEMINI')))
     return Response.json(
       {
         error: "Configuração de API não disponível. Entre em contato com o suporte.",
