@@ -164,6 +164,39 @@ export async function POST(req: Request) {
         { status: 409 }
       );
     }
+
+    const supabaseAdmin = createSupabaseClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    )
+
+    // Check if we already have a completed analysis for this video to avoid duplicate AI costs
+    const { data: existingVideo } = await supabaseAdmin
+      .from('processed_videos')
+      .select('script_blob_url')
+      .eq('video_id', videoId)
+      .eq('status', 'completed')
+      .maybeSingle()
+
+    if (existingVideo?.script_blob_url) {
+      console.log(`[API] Serving cached analysis for video: ${videoId}`)
+      try {
+        const cachedRes = await fetch(existingVideo.script_blob_url)
+        if (cachedRes.ok) {
+          const cachedText = await cachedRes.text()
+          // Ensure KV status is completed
+          await kv.set(`video:${videoId}`, 'completed', { ex: 86400 })
+          return new Response(cachedText, {
+            headers: {
+              'Content-Type': 'text/plain; charset=utf-8',
+              'X-Cached-Response': 'true'
+            }
+          })
+        }
+      } catch (cacheError) {
+        console.error(`[API] Failed to fetch cached blob for ${videoId}, re-processing:`, cacheError)
+      }
+    }
     
     // Lock in KV (5 mins TTL)
     await kv.set(`video:${videoId}`, 'processing', { ex: 300 });
