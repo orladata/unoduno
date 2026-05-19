@@ -9,6 +9,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server"
+import { updateSession } from "./utils/supabase/middleware"
 
 // ============================================================================
 // CONSTANTS
@@ -167,7 +168,7 @@ function isRequestTooLarge(request: NextRequest): boolean {
 // MIDDLEWARE
 // ============================================================================
 
-export function middleware(request: NextRequest): NextResponse {
+export async function middleware(request: NextRequest): Promise<NextResponse> {
   const { pathname } = request.nextUrl
   
   // Skip middleware for static files
@@ -241,7 +242,10 @@ export function middleware(request: NextRequest): NextResponse {
     }
   }
   
-  return response
+  // Supabase session update
+  const finalResponse = await updateSession(request, response)
+  
+  return finalResponse
 }
 
 // ============================================================================

@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
+import { motion, AnimatePresence } from "framer-motion"
 
 /** Safely convert ANY value (string, object, array, undefined) to a renderable string.
  *  This prevents React crashes when the AI returns an object where a string is expected. */
@@ -69,7 +70,7 @@ function CopyButton({ text, label = "Copiar" }: { text: string; label?: string }
 
   const handleCopy = () => {
     navigator.clipboard.writeText(text)
-    setCopied(true)
+    copied ? null : setCopied(true)
     setTimeout(() => setCopied(false), 2000)
   }
 
@@ -78,14 +79,14 @@ function CopyButton({ text, label = "Copiar" }: { text: string; label?: string }
       variant="outline"
       size="sm"
       onClick={handleCopy}
-      className="h-8 gap-2 border-white/10 hover:bg-white/5 active:scale-[0.98] transition-all"
+      className="h-11 sm:h-8 px-4 sm:px-3 gap-2 border-white/10 hover:bg-white/5 active:scale-[0.98] transition-all rounded-lg select-none"
     >
       {copied ? (
         <>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-green-400">
             <polyline points="20 6 9 17 4 12" />
           </svg>
-          Copiado!
+          <span className="text-xs font-semibold text-green-400">Copiado!</span>
         </>
       ) : (
         <>
@@ -93,7 +94,7 @@ function CopyButton({ text, label = "Copiar" }: { text: string; label?: string }
             <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
             <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
           </svg>
-          {label}
+          <span className="text-xs font-semibold">{label}</span>
         </>
       )}
     </Button>
@@ -166,8 +167,8 @@ export function ViralEngineerAnalysis({
         </p>
       </div>
 
-      {/* Tabs Selector */}
-      <div className="flex flex-wrap gap-2 p-1 bg-white/5 rounded-2xl border border-white/10">
+      {/* Tabs Selector (Premium Mobile Scroll) */}
+      <div className="flex flex-nowrap overflow-x-auto scrollbar-hide snap-x gap-2 p-1 bg-white/5 rounded-2xl border border-white/10" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
         {[
           { id: "origin" as const, label: "📹 Origem (Vídeo Original)", icon: "📺" },
           { id: "essence" as const, label: "🎬 Essência & Transcrição", icon: "🎥" },
@@ -177,10 +178,10 @@ export function ViralEngineerAnalysis({
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
-            className={`flex-1 min-w-[150px] flex items-center justify-center gap-2 px-4 py-3 text-xs sm:text-sm font-semibold rounded-xl cursor-pointer transition-all duration-200 ${
+            className={`snap-start shrink-0 min-w-[160px] flex items-center justify-center gap-2 px-4 py-3 text-xs sm:text-sm font-semibold rounded-xl cursor-pointer transition-all duration-300 ${
               activeTab === tab.id
-                ? "bg-white text-black shadow-lg shadow-white/5"
-                : "text-gray-400 hover:text-white hover:bg-white/5"
+                ? "bg-white text-black shadow-lg shadow-white/5 scale-100"
+                : "text-gray-400 hover:text-white hover:bg-white/10 scale-95 opacity-80 hover:opacity-100"
             }`}
           >
             <span>{tab.icon}</span>
@@ -189,11 +190,20 @@ export function ViralEngineerAnalysis({
         ))}
       </div>
 
-      {/* Tab Contents */}
-      <div className="transition-all duration-300">
-        {/* TAB 0: ORIGIN */}
-        {activeTab === "origin" && (
-          <div className="space-y-6">
+      {/* Tab Contents (Animated) */}
+      <div className="relative min-h-[300px]">
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={activeTab}
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -15 }}
+            transition={{ duration: 0.3, ease: "easeOut" }}
+            className="space-y-6"
+          >
+            {/* TAB 0: ORIGIN */}
+            {activeTab === "origin" && (
+              <div className="space-y-6">
             {analysis.originalVideoDetails && (
               <>
                 {/* Thumbnail & Metrics */}
@@ -495,6 +505,8 @@ export function ViralEngineerAnalysis({
             </Card>
           </div>
         )}
+          </motion.div>
+        </AnimatePresence>
       </div>
 
       {/* Summary - Key Learning Card */}

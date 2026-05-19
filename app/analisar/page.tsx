@@ -1,11 +1,12 @@
 "use client"
 
-import { Suspense, useEffect, useCallback, useRef } from "react"
+import { Suspense, useEffect, useCallback, useRef, useState } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
 import Link from "next/link"
 import { youtubeUrlSchema, extractVideoId, sanitizeTextContent } from "@/lib/validations"
 import { useChatAPI } from "@/hooks/use-chat-api"
 import { ViralEngineerAnalysis } from "@/components/viral-engineer-analysis"
+import { motion } from "framer-motion"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -98,17 +99,32 @@ function CopyIcon() {
 
 function StreamingIndicator({ status }: { readonly status: string }) {
   const isStreaming = status === "streaming" || status === "submitted"
+  const [seconds, setSeconds] = useState(0)
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setSeconds((prev) => prev + 1)
+    }, 1000)
+    return () => clearInterval(timer)
+  }, [])
 
   return (
-    <div className="flex flex-col items-center justify-center gap-8 py-24" role="status" aria-live="polite" aria-label="Gerando roteiro">
+    <motion.div 
+      initial={{ opacity: 0, scale: 0.98 }}
+      animate={{ opacity: 1, scale: 1 }}
+      className="flex flex-col items-center justify-center gap-8 py-16" 
+      role="status" 
+      aria-live="polite" 
+      aria-label="Gerando roteiro"
+    >
       {/* Central spinner */}
       <div className="relative flex items-center justify-center">
         <div
-          className="absolute w-24 h-24 rounded-full"
-          style={{ background: "radial-gradient(circle, rgba(255,255,255,0.06) 0%, transparent 70%)" }}
+          className="absolute w-28 h-28 rounded-full animate-ping"
+          style={{ background: "radial-gradient(circle, rgba(255,255,255,0.03) 0%, transparent 70%)", animationDuration: "3s" }}
         />
         <div
-          className="w-16 h-16 rounded-full border flex items-center justify-center"
+          className="w-16 h-16 rounded-2xl border flex items-center justify-center transition-all duration-300"
           style={{ borderColor: "rgba(255,255,255,0.08)", background: "rgba(255,255,255,0.04)" }}
         >
           <SpinnerIcon size={28} />
@@ -117,22 +133,34 @@ function StreamingIndicator({ status }: { readonly status: string }) {
 
       {/* Phase labels */}
       <div className="flex flex-col items-center gap-3">
-        <p className="text-sm font-medium text-white">
+        <h2 className="text-base font-bold text-white tracking-tight">
           {isStreaming ? "Gerando roteiro adaptado..." : "Analisando vídeo..."}
-        </p>
-        <div className="flex items-center gap-2" style={{ color: "var(--text-muted)" }}>
+        </h2>
+        <div className="flex items-center gap-2 text-white/40">
           <div className="w-1 h-1 rounded-full bg-current animate-pulse" />
-          <p className="text-xs font-medium tracking-wide">
-            {isStreaming ? "Escrevendo seu roteiro" : "Conectando ao modelo de IA"}
+          <p className="text-xs font-semibold tracking-wide uppercase">
+            {isStreaming ? "Escrevendo seu roteiro" : "Conectando ao modelo de IA"} ({seconds}s)
           </p>
           <div className="w-1 h-1 rounded-full bg-current animate-pulse" style={{ animationDelay: "0.2s" }} />
         </div>
       </div>
 
+      {/* Timer alert for longer videos */}
+      {seconds > 15 && (
+        <motion.div 
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="p-4 rounded-xl bg-white/[0.02] border border-white/5 max-w-sm text-center"
+        >
+          <p className="text-xs text-white/50 leading-relaxed">
+            ⏳ O vídeo original é um pouco longo. A inteligência artificial está processando a transcrição e estruturando a engenharia viral completa. Por favor, aguarde mais alguns instantes.
+          </p>
+        </motion.div>
+      )}
+
       {/* Step list */}
       <div
-        className="flex flex-col gap-2 px-6 py-4 rounded-2xl w-full max-w-sm"
-        style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)" }}
+        className="flex flex-col gap-3 px-6 py-5 rounded-3xl w-full max-w-sm bg-white/[0.02] border border-white/5 shadow-2xl"
         role="list"
         aria-label="Etapas do processo"
       >
@@ -144,10 +172,10 @@ function StreamingIndicator({ status }: { readonly status: string }) {
         ].map((step, i) => (
           <div key={i} className="flex items-center gap-3" role="listitem">
             <div
-              className="w-5 h-5 rounded-full flex items-center justify-center shrink-0"
+              className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 transition-all duration-300"
               style={{
-                background: step.done ? "rgba(255,255,255,0.12)" : "rgba(255,255,255,0.04)",
-                border: `1px solid ${step.done ? "rgba(255,255,255,0.2)" : "rgba(255,255,255,0.08)"}`,
+                background: step.done ? "rgba(255,255,255,0.12)" : "rgba(255,255,255,0.02)",
+                border: `1px solid ${step.done ? "rgba(255,255,255,0.15)" : "rgba(255,255,255,0.05)"}`,
               }}
               aria-hidden="true"
             >
@@ -158,23 +186,24 @@ function StreamingIndicator({ status }: { readonly status: string }) {
                   : null
               }
             </div>
-            <span className="text-xs" style={{ color: step.done ? "rgba(255,255,255,0.7)" : "var(--text-subtle)" }}>
+            <span className="text-xs font-medium" style={{ color: step.done ? "rgba(255,255,255,0.8)" : "rgba(255,255,255,0.35)" }}>
               {step.label}
             </span>
           </div>
         ))}
       </div>
-    </div>
+    </motion.div>
   )
 }
 
 // ─── Script Display ───────────────────────────────────────────────────────────
 
-function ScriptDisplay({ content, videoId, onCopy, onReset }: {
+function ScriptDisplay({ content, videoId, onCopy, onReset, isCopied }: {
   readonly content: string
   readonly videoId: string | null
   readonly onCopy: () => void
   readonly onReset: () => void
+  readonly isCopied?: boolean
 }) {
   // Split content into labelled sections by scanning for keywords
   const sections = parseSections(content)
@@ -204,12 +233,12 @@ function ScriptDisplay({ content, videoId, onCopy, onReset }: {
           <button
             type="button"
             onClick={onCopy}
-            className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium transition-colors duration-200 hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
-            style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", color: "var(--text-muted)" }}
+            className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 ${isCopied ? 'bg-green-600/20 text-green-400 border-green-500/30' : 'hover:bg-white/10 text-[var(--text-muted)]'}`}
+            style={!isCopied ? { background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)" } : {}}
             aria-label="Copiar roteiro completo"
           >
-            <CopyIcon />
-            Copiar tudo
+            {isCopied ? <CheckIcon /> : <CopyIcon />}
+            {isCopied ? "Copiado!" : "Copiar tudo"}
           </button>
           <button
             type="button"
@@ -491,11 +520,15 @@ function AnalisarInner() {
     isLoading ? "streaming" :
     "idle"
 
+  const [isCopied, setIsCopied] = useState(false)
+
   // 6. Handlers
   const handleCopy = useCallback(async () => {
     if (!assistantText) return
     try {
       await navigator.clipboard.writeText(assistantText)
+      setIsCopied(true)
+      setTimeout(() => setIsCopied(false), 2000)
     } catch {
       // Clipboard not available — silent fail
     }

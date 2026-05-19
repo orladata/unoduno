@@ -51,7 +51,7 @@ export const youtubeUrlSchema = z
     { message: "URL inválida — use um link válido do YouTube" }
   )
 
-export type YouTubeUrlInput = z.infer<typeof youtubeUrlSchema>
+
 
 /**
  * Extracts the video ID from a validated YouTube URL
@@ -74,14 +74,7 @@ export function sanitizeTextContent(text: string): string {
     .replace(/data:/gi, "") // Remove data: protocol
 }
 
-/**
- * Validates and sanitizes search params
- */
-export const searchParamsSchema = z.object({
-  url: youtubeUrlSchema.optional(),
-})
 
-export type SearchParams = z.infer<typeof searchParamsSchema>
 
 /**
  * Safe URL construction for internal navigation

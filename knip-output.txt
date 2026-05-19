@@ -1,0 +1,21 @@
+Unused files (3)
+lib/db.ts        
+lib/rate-limit.ts
+lib/session.ts   
+Unused dependencies (2)
+@neondatabase/serverless  package.json:13:6
+autoprefixer              package.json:17:6
+Unlisted dependencies (1)
+postcss-load-config  postcss.config.mjs:1:10
+Unlisted binaries (1)
+eslint  package.json
+Unused exports (6)
+badgeVariants       components/ui/badge.tsx:46:17 
+buttonVariants      components/ui/button.tsx:60:18
+CardFooter          components/ui/card.tsx:87:3   
+CardAction          components/ui/card.tsx:89:3   
+CardDescription     components/ui/card.tsx:90:3   
+searchParamsSchema  lib/validations.ts:80:14      
+Unused exported types (2)
+YouTubeUrlInput  type  lib/validations.ts:54:13
+SearchParams     type  lib/validations.ts:84:13

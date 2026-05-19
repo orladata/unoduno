@@ -1,7 +1,10 @@
 import { createGoogleGenerativeAI } from "@ai-sdk/google"
 import { streamText } from "ai"
 import { YoutubeTranscript } from "youtube-transcript"
-
+import { put } from '@vercel/blob'
+import { kv } from '@vercel/kv'
+import { createClient as createSupabaseClient } from '@supabase/supabase-js'
+import { createClient as createServerClient } from '@/utils/supabase/server'
 export const maxDuration = 120
 export const dynamic = "force-dynamic"
 
@@ -71,6 +74,29 @@ async function fetchYouTubeTranscript(videoId: string): Promise<string | null> {
   }
 }
 
+/** Fetch official views count from YouTube metadata with strict 2.5s timeout */
+async function fetchYouTubeViews(videoId: string): Promise<string | null> {
+  const fetchPromise = (async () => {
+    try {
+      const res = await fetch(`https://www.youtube.com/watch?v=${videoId}`, { 
+        headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36' }
+      })
+      const html = await res.text()
+      // Extract exact views from schema.org metadata
+      const match = html.match(/<meta itemprop="interactionCount" content="(\d+)"/)
+      return match ? match[1] : null
+    } catch {
+      return null
+    }
+  })()
+
+  const timeoutPromise = new Promise<null>((resolve) => {
+    setTimeout(() => resolve(null), 2500)
+  })
+
+  return Promise.race([fetchPromise, timeoutPromise])
+}
+
 // ─── Route Handler ─────────────────────────────────────────────────────────────
 
 export async function POST(req: Request) {
@@ -121,9 +147,30 @@ export async function POST(req: Request) {
     }
 
     const videoId = extractVideoId(youtubeUrl) ?? ""
-    const normalizedUrl = videoId
-      ? `https://www.youtube.com/watch?v=${videoId}`
-      : youtubeUrl
+    if (!videoId) {
+      return Response.json(
+        { error: "ID do vídeo não pôde ser extraído." },
+        { status: 400 }
+      )
+    }
+
+    const normalizedUrl = `https://www.youtube.com/watch?v=${videoId}`
+
+    // ── PHASE 0: KV Idempotency & Auth Check ─────────────────────────────────
+    const cachedStatus = await kv.get(`video:${videoId}`);
+    if (cachedStatus === 'processing') {
+      return Response.json(
+        { error: 'Este vídeo já está sendo processado por outro usuário.', code: 'ALREADY_PROCESSING' }, 
+        { status: 409 }
+      );
+    }
+    
+    // Lock in KV (5 mins TTL)
+    await kv.set(`video:${videoId}`, 'processing', { ex: 300 });
+
+    const supabaseAuth = await createServerClient()
+    const { data: { user } } = await supabaseAuth.auth.getUser()
+    const userId = user?.id || null
 
     // ── PHASE 1: Fetch real YouTube transcript ──────────────────────────────
     console.log(`[API] Fetching transcript for video: ${videoId}`)
@@ -134,6 +181,11 @@ export async function POST(req: Request) {
       : `⚠️ Legendas não disponíveis — o Gemini deve transcrever diretamente pelo áudio do vídeo.`
 
     console.log(`[API] ${transcriptStatus}`)
+
+    console.log(`[API] Fetching official views for video: ${videoId}`)
+    const realViews = await fetchYouTubeViews(videoId)
+    const formattedViews = realViews ? new Intl.NumberFormat('pt-BR').format(Number(realViews)) : "Indisponível"
+    console.log(`[API] Official views: ${formattedViews}`)
 
     // ── PHASE 2: Initialize Gemini ──────────────────────────────────────────
     let google
@@ -219,6 +271,10 @@ Estrutura JSON obrigatória:
   "keyLearning": "O segredo de viralidade deste vídeo em 2 linhas, baseado no que foi realmente dito"
 }`
 
+    const viewsSection = realViews 
+      ? `\n=== DADOS OFICIAIS DE ENGAJAMENTO ===\nNúmero exato e oficial de visualizações: ${formattedViews}\nVocê DEVE usar este valor exato (${formattedViews}) em vez de tentar estimar ou chutar as visualizações.\n`
+      : ""
+
     // Build the user message content — include video file only when no real transcript
     const userContent: Array<{
       type: "text"
@@ -230,7 +286,7 @@ Estrutura JSON obrigatória:
     }> = [
       {
         type: "text",
-        text: `Analise este vídeo do YouTube e gere o blueprint viral completo.\n\nURL: ${normalizedUrl}\n\n${transcriptSection}`,
+        text: `Analise este vídeo do YouTube e gere o blueprint viral completo.\n\nURL: ${normalizedUrl}\n\n${viewsSection}\n${transcriptSection}`,
       },
     ]
 
@@ -251,11 +307,60 @@ Estrutura JSON obrigatória:
       messages: [
         { role: "user", content: userContent },
       ],
+      async onFinish({ text }) {
+        try {
+          console.log(`[API] Uploading payloads to Vercel Blob for ${videoId}...`)
+          const transcriptData = realTranscript || "Transcrição via áudio (multimodal)..."
+          
+          const [transcriptionBlob, scriptBlob] = await Promise.all([
+            put(`transcriptions/${videoId}.txt`, transcriptData, {
+              access: 'public',
+              addRandomSuffix: false,
+            }),
+            put(`scripts/${videoId}.json`, text, {
+              access: 'public',
+              contentType: 'application/json',
+              addRandomSuffix: false,
+            })
+          ])
+
+          console.log(`[API] Saving metadata to Supabase for ${videoId}...`)
+          const supabaseAdmin = createSupabaseClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            process.env.SUPABASE_SERVICE_ROLE_KEY!
+          )
+
+          await supabaseAdmin.from('processed_videos').insert([
+            {
+              user_id: userId,
+              youtube_url: normalizedUrl,
+              video_id: videoId,
+              title: "Análise " + videoId, // Título pode ser atualizado posteriormente
+              transcription_blob_url: transcriptionBlob.url,
+              script_blob_url: scriptBlob.url,
+              status: 'completed'
+            }
+          ])
+
+          await kv.set(`video:${videoId}`, 'completed', { ex: 86400 });
+          console.log(`[API] Finished processing ${videoId}.`)
+        } catch (bgError) {
+          console.error(`[API] Background processing error for ${videoId}:`, bgError)
+          await kv.del(`video:${videoId}`);
+        }
+      }
     })
 
     return result.toTextStreamResponse()
 
   } catch (error) {
+    const body = await req.clone().json().catch(() => ({}))
+    const msgText = body.messages?.[body.messages.length - 1]?.content || ""
+    const yUrl = extractYoutubeUrl(msgText)
+    const vId = yUrl ? extractVideoId(yUrl) : null
+    
+    if (vId) await kv.del(`video:${vId}`);
+
     const errorMessage = error instanceof Error ? error.message : "Erro desconhecido"
     console.error("[API] Error:", errorMessage)
 
