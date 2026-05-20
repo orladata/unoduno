@@ -168,7 +168,7 @@ function isRequestTooLarge(request: NextRequest): boolean {
 // MIDDLEWARE
 // ============================================================================
 
-export async function middleware(request: NextRequest): Promise<NextResponse> {
+export default async function proxy(request: NextRequest): Promise<NextResponse> {
   const { pathname } = request.nextUrl
   
   // Skip middleware for static files

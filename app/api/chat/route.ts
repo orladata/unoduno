@@ -113,6 +113,8 @@ export async function POST(req: Request) {
     )
   }
 
+  let currentVideoId: string | null = null;
+
   try {
     const body = await req.json()
     const messages = body.messages || []
@@ -155,6 +157,7 @@ export async function POST(req: Request) {
     }
 
     const normalizedUrl = `https://www.youtube.com/watch?v=${videoId}`
+    currentVideoId = videoId;
 
     // ── PHASE 0: KV Idempotency & Auth Check ─────────────────────────────────
     const cachedStatus = await kv.get(`video:${videoId}`);
@@ -349,11 +352,13 @@ Estrutura JSON obrigatória:
             put(`transcriptions/${videoId}.txt`, transcriptData, {
               access: 'public',
               addRandomSuffix: false,
+              allowOverwrite: true,
             }),
             put(`scripts/${videoId}.json`, text, {
               access: 'public',
               contentType: 'application/json',
               addRandomSuffix: false,
+              allowOverwrite: true,
             })
           ])
 
@@ -387,12 +392,7 @@ Estrutura JSON obrigatória:
     return result.toTextStreamResponse()
 
   } catch (error) {
-    const body = await req.clone().json().catch(() => ({}))
-    const msgText = body.messages?.[body.messages.length - 1]?.content || ""
-    const yUrl = extractYoutubeUrl(msgText)
-    const vId = yUrl ? extractVideoId(yUrl) : null
-    
-    if (vId) await kv.del(`video:${vId}`);
+    if (currentVideoId) await kv.del(`video:${currentVideoId}`);
 
     const errorMessage = error instanceof Error ? error.message : "Erro desconhecido"
     console.error("[API] Error:", errorMessage)
