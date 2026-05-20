@@ -4,24 +4,34 @@ import { useTransition, useState, useEffect } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
-import { login, signup, signInWithGoogle } from "./actions"
+import { login, signup, signInWithGoogle, resetPassword } from "./actions"
 import { useSearchParams } from "next/navigation"
 
 const loginSchema = z.object({
   email: z.string().email("Insira um endereço de e-mail válido"),
-  password: z.string().min(6, "A senha deve ter pelo menos 6 caracteres"),
+  password: z.string().optional().refine((val) => {
+    // If not in forgot password state, password is required and must be at least 6 chars
+    return true; // We do dynamic validation inside onSubmit or handle schema switching
+  }),
 })
 
-type LoginFormValues = z.infer<typeof loginSchema>
+type LoginFormValues = {
+  email: string
+  password?: string
+}
 
 export default function LoginPage() {
   const [isPending, startTransition] = useTransition()
   const [customError, setCustomError] = useState<string | null>(null)
+  const [customSuccess, setCustomSuccess] = useState<string | null>(null)
   const [isSignUp, setIsSignUp] = useState(false)
+  const [isForgotPassword, setIsForgotPassword] = useState(false)
   const searchParams = useSearchParams()
 
   useEffect(() => {
     const errorParam = searchParams.get("error")
+    const messageParam = searchParams.get("message")
+
     if (errorParam) {
       if (errorParam === "Invalid login credentials") {
         setCustomError("Credenciais inválidas. Verifique seu e-mail e senha.")
@@ -30,6 +40,10 @@ export default function LoginPage() {
       } else {
         setCustomError(errorParam)
       }
+    }
+
+    if (messageParam) {
+      setCustomSuccess(messageParam)
     }
   }, [searchParams])
 
@@ -44,11 +58,23 @@ export default function LoginPage() {
 
   const handleAuthAction = (data: LoginFormValues) => {
     setCustomError(null)
+    setCustomSuccess(null)
     startTransition(async () => {
       const formData = new FormData()
       formData.append("email", data.email)
-      formData.append("password", data.password)
       
+      if (isForgotPassword) {
+        await resetPassword(formData)
+        return
+      }
+
+      // Password validation for Auth flows
+      if (!data.password || data.password.length < 6) {
+        setCustomError("A senha deve ter pelo menos 6 caracteres")
+        return
+      }
+      formData.append("password", data.password)
+
       if (isSignUp) {
         await signup(formData)
       } else {
@@ -59,6 +85,7 @@ export default function LoginPage() {
 
   const handleGoogleLogin = () => {
     setCustomError(null)
+    setCustomSuccess(null)
     startTransition(async () => {
       await signInWithGoogle()
     })
@@ -87,12 +114,19 @@ export default function LoginPage() {
           {/* Header */}
           <div className="mb-6">
             <h1 className="text-2xl font-bold text-white tracking-tight lowercase">
-              {isSignUp ? "criar minha conta" : "bem vindo de volta"}
+              {isForgotPassword 
+                ? "recuperar senha" 
+                : isSignUp 
+                  ? "criar minha conta" 
+                  : "bem vindo de volta"
+              }
             </h1>
             <p className="text-xs text-white/50 mt-1">
-              {isSignUp 
-                ? "Preencha os dados abaixo para começar a analisar vídeos." 
-                : "Faça login para gerenciar suas análises de vídeo."
+              {isForgotPassword
+                ? "Digite seu e-mail cadastrado e enviaremos um link de recuperação."
+                : isSignUp 
+                  ? "Preencha os dados abaixo para começar a analisar vídeos." 
+                  : "Faça login para gerenciar suas análises de vídeo."
               }
             </p>
           </div>
@@ -118,30 +152,37 @@ export default function LoginPage() {
               )}
             </div>
 
-            {/* Password Field */}
-            <div className="flex flex-col gap-1.5">
-              <div className="flex justify-between items-center px-1">
-                <label className="text-[11px] font-semibold text-white/60 uppercase tracking-wider" htmlFor="password">
-                  Senha
-                </label>
-                {!isSignUp && (
-                  <a href="#" className="text-[10px] text-violet-400 hover:text-violet-300 transition-colors font-medium">
-                    Esqueceu sua senha?
-                  </a>
-                )}
+            {/* Password Field (Hidden in Forgot Password state) */}
+            {!isForgotPassword && (
+              <div className="flex flex-col gap-1.5">
+                <div className="flex justify-between items-center px-1">
+                  <label className="text-[11px] font-semibold text-white/60 uppercase tracking-wider" htmlFor="password">
+                    Senha
+                  </label>
+                  {!isSignUp && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsForgotPassword(true)
+                        setCustomError(null)
+                        setCustomSuccess(null)
+                      }}
+                      className="text-[10px] text-violet-400 hover:text-violet-300 transition-colors font-medium cursor-pointer"
+                    >
+                      Esqueceu sua senha?
+                    </button>
+                  )}
+                </div>
+                <input
+                  {...register("password")}
+                  className="px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-sm text-white placeholder-white/20 focus:outline-none focus:ring-2 focus:ring-white/10 transition-all"
+                  id="password"
+                  type="password"
+                  placeholder="••••••••"
+                  disabled={isPending}
+                />
               </div>
-              <input
-                {...register("password")}
-                className={`px-4 py-3 bg-white/5 border ${errors.password ? 'border-red-500/50 focus:ring-red-500/10' : 'border-white/10 focus:ring-white/10'} rounded-xl text-sm text-white placeholder-white/20 focus:outline-none focus:ring-2 transition-all`}
-                id="password"
-                type="password"
-                placeholder="••••••••"
-                disabled={isPending}
-              />
-              {errors.password && (
-                <span className="text-[11px] text-red-400 ml-1 font-medium">{errors.password.message}</span>
-              )}
-            </div>
+            )}
 
             {/* Error Message */}
             {customError && (
@@ -155,6 +196,17 @@ export default function LoginPage() {
               </div>
             )}
 
+            {/* Success Message */}
+            {customSuccess && (
+              <div className="p-3 rounded-xl bg-violet-500/10 border border-violet-500/20 text-violet-300 text-xs font-medium flex items-center gap-2 animate-fadeIn">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
+                  <circle cx="12" cy="12" r="10" />
+                  <path d="m9 12 2 2 4-4" />
+                </svg>
+                <span>{customSuccess}</span>
+              </div>
+            )}
+
             {/* Submit Button */}
             <button
               type="submit"
@@ -164,47 +216,70 @@ export default function LoginPage() {
               {isPending ? (
                 <span className="w-5 h-5 border-2 border-black border-t-transparent rounded-full animate-spin" />
               ) : (
-                isSignUp ? "Criar minha conta" : "Conecte-se"
+                isForgotPassword
+                  ? "Enviar link de recuperação"
+                  : isSignUp 
+                    ? "Criar minha conta" 
+                    : "Conecte-se"
               )}
             </button>
 
-            {/* Social Divider */}
-            <div className="flex items-center gap-3 my-2 opacity-30">
-              <div className="flex-1 h-px bg-white" />
-              <span className="text-[9px] font-bold text-white uppercase tracking-widest">Ou continue com</span>
-              <div className="flex-1 h-px bg-white" />
-            </div>
+            {/* Social Authentication and Toggle Links (Hidden in Forgot Password) */}
+            {!isForgotPassword ? (
+              <>
+                {/* Social Divider */}
+                <div className="flex items-center gap-3 my-2 opacity-30">
+                  <div className="flex-1 h-px bg-white" />
+                  <span className="text-[9px] font-bold text-white uppercase tracking-widest">Ou continue com</span>
+                  <div className="flex-1 h-px bg-white" />
+                </div>
 
-            {/* Google OAuth Button */}
-            <button
-              type="button"
-              onClick={handleGoogleLogin}
-              disabled={isPending}
-              className="w-full bg-white/5 border border-white/10 text-white font-medium py-3 rounded-xl hover:bg-white/10 active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none transition-all flex items-center justify-center gap-3 h-[44px]"
-            >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
-                <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
-                <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
-                <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
-              </svg>
-              Google
-            </button>
+                {/* Google OAuth Button */}
+                <button
+                  type="button"
+                  onClick={handleGoogleLogin}
+                  disabled={isPending}
+                  className="w-full bg-white/5 border border-white/10 text-white font-medium py-3 rounded-xl hover:bg-white/10 active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none transition-all flex items-center justify-center gap-3 h-[44px]"
+                >
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+                    <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+                    <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+                    <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+                  </svg>
+                  Google
+                </button>
 
-            {/* Toggle Link */}
-            <p className="text-center text-xs text-white/50 mt-4">
-              {isSignUp ? "Já tem uma conta?" : "Não tem uma conta?"}{" "}
+                {/* Toggle Link */}
+                <p className="text-center text-xs text-white/50 mt-4">
+                  {isSignUp ? "Já tem uma conta?" : "Não tem uma conta?"}{" "}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsSignUp(!isSignUp)
+                      setCustomError(null)
+                      setCustomSuccess(null)
+                    }}
+                    className="text-violet-400 hover:text-violet-300 font-semibold underline underline-offset-4"
+                  >
+                    {isSignUp ? "Conecte-se" : "Cadastre-se"}
+                  </button>
+                </p>
+              </>
+            ) : (
+              /* Back to Login Link in Forgot Password state */
               <button
                 type="button"
                 onClick={() => {
-                  setIsSignUp(!isSignUp)
+                  setIsForgotPassword(false)
                   setCustomError(null)
+                  setCustomSuccess(null)
                 }}
-                className="text-violet-400 hover:text-violet-300 font-semibold underline underline-offset-4"
+                className="text-center text-xs text-violet-400 hover:text-violet-300 font-semibold underline underline-offset-4 mt-2"
               >
-                {isSignUp ? "Conecte-se" : "Cadastre-se"}
+                Voltar para o login
               </button>
-            </p>
+            )}
 
           </form>
         </div>
