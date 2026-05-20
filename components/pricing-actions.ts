@@ -5,9 +5,7 @@ import { headers } from 'next/headers'
 import Stripe from 'stripe'
 
 // Stripe SDK Initialization
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string, {
-  apiVersion: '2024-12-18.accredited' as any, // Standard API version or default
-})
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string)
 
 export async function createCheckoutSession(priceId: string) {
   const supabase = await createClient()

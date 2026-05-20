@@ -2,9 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import Stripe from "stripe"
 import { createAdminClient } from "@/utils/supabase/admin"
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string, {
-  apiVersion: "2024-12-18.accredited" as any,
-})
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string)
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET
 
