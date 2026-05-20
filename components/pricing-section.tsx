@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { useReveal } from "@/hooks/use-reveal"
+import { createCheckoutSession } from "./pricing-actions"
 
 interface PlanFeature {
   text: string
@@ -13,6 +14,8 @@ interface PricingPlan {
   badge?: string
   priceMonthly: number
   priceAnnual: number
+  priceIdMonthly?: string
+  priceIdAnnual?: string
   description: string
   features: PlanFeature[]
   buttonText: string
@@ -20,6 +23,7 @@ interface PricingPlan {
   btnStyle: "primary" | "secondary"
 }
 
+// Map plans and bind Price IDs from environment variables for Stripe checkout
 const plans: PricingPlan[] = [
   {
     name: "Starter",
@@ -42,6 +46,8 @@ const plans: PricingPlan[] = [
     badge: "Mais Popular",
     priceMonthly: 97,
     priceAnnual: 77,
+    priceIdMonthly: process.env.NEXT_PUBLIC_STRIPE_PRICE_PRO_MONTHLY || "",
+    priceIdAnnual: process.env.NEXT_PUBLIC_STRIPE_PRICE_PRO_ANNUAL || "",
     description: "Para criadores sérios que querem viralizar com consistência.",
     features: [
       { text: "Análises ilimitadas de URLs", included: true },
@@ -58,6 +64,8 @@ const plans: PricingPlan[] = [
     name: "Agência",
     priceMonthly: 247,
     priceAnnual: 197,
+    priceIdMonthly: process.env.NEXT_PUBLIC_STRIPE_PRICE_AGENCY_MONTHLY || "",
+    priceIdAnnual: process.env.NEXT_PUBLIC_STRIPE_PRICE_AGENCY_ANNUAL || "",
     description: "Escala total de roteiros para produtoras e agências de conteúdo.",
     features: [
       { text: "Tudo no Pro incluído", included: true },
@@ -66,7 +74,7 @@ const plans: PricingPlan[] = [
       { text: "Gerenciamento de marcas", included: true },
       { text: "Suporte dedicado 24/7", included: true },
     ],
-    buttonText: "Falar com Consultor",
+    buttonText: "Assinar Plano Agência",
     popular: false,
     btnStyle: "secondary",
   },
@@ -76,6 +84,48 @@ export function PricingSection() {
   const { ref, visible } = useReveal(0.1)
   const [isAnnual, setIsAnnual] = useState(false)
   const [hoveredCard, setHoveredCard] = useState<number | null>(null)
+  const [loadingPlan, setLoadingPlan] = useState<string | null>(null)
+  const [errorMsg, setErrorMsg] = useState<string | null>(null)
+
+  const handleCheckout = async (plan: PricingPlan) => {
+    setErrorMsg(null)
+
+    if (plan.name === "Starter") {
+      window.location.href = "/login?signup=true"
+      return
+    }
+
+    const priceId = isAnnual ? plan.priceIdAnnual : plan.priceIdMonthly
+
+    if (!priceId) {
+      setErrorMsg(`Erro: Stripe Price ID não configurado para o plano ${plan.name} (${isAnnual ? 'Anual' : 'Mensal'}) nas variáveis de ambiente.`)
+      return
+    }
+
+    setLoadingPlan(plan.name)
+    try {
+      const res = await createCheckoutSession(priceId)
+      
+      if (res.error === "AUTH_REQUIRED") {
+        window.location.href = res.url || "/login"
+        return
+      }
+
+      if (res.error) {
+        setErrorMsg(res.error)
+        return
+      }
+
+      if (res.url) {
+        window.location.href = res.url
+      }
+    } catch (err: any) {
+      console.error(err)
+      setErrorMsg("Ocorreu um erro ao iniciar a sessão de pagamento.")
+    } finally {
+      setLoadingPlan(null)
+    }
+  }
 
   return (
     <section
@@ -124,6 +174,7 @@ export function PricingSection() {
                 ? "bg-white text-black shadow-md" 
                 : "text-white/60 hover:text-white"
             }`}
+            disabled={loadingPlan !== null}
           >
             Mensal
           </button>
@@ -135,6 +186,7 @@ export function PricingSection() {
                 ? "bg-white text-black shadow-md" 
                 : "text-white/60 hover:text-white"
             }`}
+            disabled={loadingPlan !== null}
           >
             Anual
             <span className="px-1.5 py-0.5 text-[9px] font-bold bg-violet-600 text-white rounded-full">
@@ -143,6 +195,18 @@ export function PricingSection() {
           </button>
         </div>
       </div>
+
+      {/* Global Error Banner */}
+      {errorMsg && (
+        <div className="max-w-2xl mx-auto mb-8 p-4 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-medium flex items-center gap-2 animate-fadeIn relative z-10">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
+            <circle cx="12" cy="12" r="10" />
+            <line x1="12" y1="8" x2="12" y2="12" />
+            <line x1="12" y1="16" x2="12.01" y2="16" />
+          </svg>
+          <span>{errorMsg}</span>
+        </div>
+      )}
 
       {/* Pricing Grid */}
       <div
@@ -156,6 +220,7 @@ export function PricingSection() {
         {plans.map((plan, index) => {
           const currentPrice = isAnnual ? plan.priceAnnual : plan.priceMonthly
           const isHovered = hoveredCard === index
+          const isPlanLoading = loadingPlan === plan.name
 
           return (
             <div
@@ -262,19 +327,25 @@ export function PricingSection() {
               {/* Call to Action Button */}
               <button
                 type="button"
-                className={`w-full py-3.5 rounded-2xl text-xs font-bold tracking-wide active:scale-[0.98] transition-all duration-200 cursor-pointer ${
+                onClick={() => handleCheckout(plan)}
+                disabled={loadingPlan !== null}
+                className={`w-full py-3.5 rounded-2xl text-xs font-bold tracking-wide active:scale-[0.98] transition-all duration-200 cursor-pointer flex items-center justify-center gap-2 ${
                   plan.btnStyle === "primary"
-                    ? "bg-white text-black hover:bg-neutral-100 shadow-xl"
-                    : "bg-white/5 text-white hover:bg-white/10 border border-white/10"
+                    ? "bg-white text-black hover:bg-neutral-100 shadow-xl disabled:bg-neutral-200"
+                    : "bg-white/5 text-white hover:bg-white/10 border border-white/10 disabled:opacity-50"
                 }`}
                 style={{
                   minHeight: "44px",
-                  boxShadow: isHovered && plan.btnStyle === "primary"
+                  boxShadow: isHovered && plan.btnStyle === "primary" && !isPlanLoading
                     ? "0 0 30px rgba(255, 255, 255, 0.2)"
                     : "none",
                 }}
               >
-                {plan.buttonText}
+                {isPlanLoading ? (
+                  <span className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  plan.buttonText
+                )}
               </button>
             </div>
           )
