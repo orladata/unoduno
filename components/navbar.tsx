@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { usePathname } from "next/navigation"
 import dynamic from "next/dynamic"
+import { useProfile } from "@/app/dashboard/profile-context"
 
 const LoginModal = dynamic(() => import("./login-modal").then(mod => mod.LoginModal), { ssr: false })
 
@@ -21,6 +22,13 @@ export function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false)
   const [activeSection, setActiveSection] = useState("")
   const [loginModalOpen, setLoginModalOpen] = useState(false)
+  const [profileOpen, setProfileOpen] = useState(false)
+  
+  const profile = useProfile()
+  const creditBalance = profile?.credit_balance ?? 0
+  const maxCredits = 100 // Or display dynamic
+  const creditCount = Math.floor(creditBalance / 100)
+  const progressPercent = Math.min(100, Math.max(0, (creditCount / 3) * 100)) // Visual progress relative to 3 credits as baseline? Wait, what's a good max? Let's assume progress bar is full if >0.
 
   useEffect(() => {
     const handleScroll = () => {
@@ -125,9 +133,56 @@ export function Navbar() {
 
           <div className="flex items-center gap-4">
             {isDashboard ? (
-              <button className="hidden sm:flex items-center justify-center h-10 w-10 rounded-full bg-gradient-to-tr from-blue-500 to-emerald-400 text-white font-bold border border-white/20 hover:scale-105 transition-transform">
-                W
-              </button>
+              <div className="relative">
+                <button 
+                  onClick={() => setProfileOpen(!profileOpen)}
+                  className="hidden sm:flex items-center justify-center h-10 w-10 rounded-full bg-gradient-to-tr from-blue-500 to-emerald-400 text-white font-bold border border-white/20 hover:scale-105 transition-transform"
+                >
+                  W
+                </button>
+                <AnimatePresence>
+                  {profileOpen && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                      transition={{ duration: 0.2 }}
+                      className="absolute right-0 mt-3 w-64 rounded-2xl bg-[#111] border border-white/10 shadow-2xl p-4 z-50 flex flex-col gap-3"
+                    >
+                      <div className="flex items-center gap-3 border-b border-white/10 pb-3">
+                        <div className="h-10 w-10 rounded-full bg-gradient-to-tr from-blue-500 to-emerald-400 text-white font-bold flex items-center justify-center shrink-0">
+                          W
+                        </div>
+                        <div className="flex flex-col">
+                          <span className="text-sm font-bold text-white leading-none overflow-hidden text-ellipsis whitespace-nowrap max-w-[150px]">
+                            {profile?.email?.split('@')[0] || "Usuário"}
+                          </span>
+                          <span className="text-xs text-slate-400 mt-1 capitalize">
+                            Plano {profile?.subscription_tier || "Gratuito"}
+                          </span>
+                        </div>
+                      </div>
+                      
+                      <div className="flex flex-col gap-1">
+                        <div className="flex justify-between items-center text-xs mb-1">
+                          <span className="text-slate-400">Cota atual</span>
+                          <span className="text-white font-bold">{creditCount} {creditCount === 1 ? 'crédito' : 'créditos'}</span>
+                        </div>
+                        <div className="w-full h-2 rounded-full bg-white/10 overflow-hidden">
+                          <div className="h-full bg-blue-500 rounded-full" style={{ width: `${progressPercent}%` }} />
+                        </div>
+                        {creditCount <= 0 && (
+                          <span className="text-[10px] text-red-400 mt-1">Sua cota acabou!</span>
+                        )}
+                      </div>
+
+                      <button className="w-full py-2.5 mt-1 rounded-xl bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white text-sm font-bold shadow-[0_0_15px_rgba(37,99,235,0.3)] transition-all active:scale-95">
+                        Atualizar Plano
+                      </button>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
             ) : (
               <button
                 onClick={() => setLoginModalOpen(true)}

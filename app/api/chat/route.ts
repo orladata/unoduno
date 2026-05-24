@@ -5,6 +5,7 @@ import { put } from '@vercel/blob'
 import { kv } from '@vercel/kv'
 import { createClient as createSupabaseClient } from '@supabase/supabase-js'
 import { createClient as createServerClient } from '@/utils/supabase/server'
+import { deductCredits } from '@/utils/credits'
 import { z } from "zod"
 
 export const maxDuration = 120
@@ -256,32 +257,29 @@ export async function POST(req: Request) {
       }
     }
 
-    // ── PHASE 0.5: PAYWALL (Limite de Uso Free) ──────────────────────────────
-    // Check if the user is a premium subscriber
+    // ── PHASE 0.5: PAYWALL (Cobrança de Créditos) ──────────────────────────────
+    // Check if the user is a premium subscriber or developer to bypass
     const { data: profile } = await supabaseAdmin
       .from('profiles')
       .select('subscription_tier')
       .eq('id', userId)
       .maybeSingle()
     
-    const isPremium = profile?.subscription_tier === 'pro' || profile?.subscription_tier === 'agency'
-
-    if (!isDeveloper && !isPremium) {
-      const usageKey = `usage:${userId}`
-      const usageCount = await kv.get<number>(usageKey) || 0
+    // We can define logic: if premium, do they still pay? Usually yes if it's pay-as-you-go, 
+    // but maybe they get a discount. For now, everyone except developers pays 100 cents (1 credit).
+    if (!isDeveloper) {
+      const COST_IN_CENTS = 100 // 1 crédito = R$ 1,00
+      const deductionSuccess = await deductCredits(userId, COST_IN_CENTS)
       
-      if (usageCount >= 1) {
+      if (!deductionSuccess) {
         return Response.json(
           { 
-            error: 'Você atingiu o limite do plano gratuito (1 análise). Atualize seu plano para continuar.', 
+            error: 'Sua cota gratuita ou de créditos acabou. Atualize seu plano para continuar criando!', 
             code: 'PAYWALL_REACHED' 
           }, 
           { status: 402 }
         )
       }
-      
-      // Increment usage for free tier
-      await kv.incr(usageKey)
     }
     
     // Lock in KV (5 mins TTL)

@@ -4,15 +4,25 @@ import { useState } from "react"
 import { motion } from "framer-motion"
 import { useRouter } from "next/navigation"
 import { DashboardCards } from "@/components/dashboard-cards"
+import { useProfile } from "./profile-context"
 
 export default function DashboardPage() {
   const router = useRouter()
   const [url, setUrl] = useState("")
   const [isLoading, setIsLoading] = useState(false)
+  
+  const profile = useProfile()
+  // Assuming 100 cents (1 credit) per analysis
+  const outOfQuota = profile ? profile.credit_balance < 100 : false
 
   const handleAnalyze = (e: React.FormEvent) => {
     e.preventDefault()
     if (!url) return
+    if (outOfQuota) {
+      // Simulate navigation to upgrade plan page or open modal
+      alert("Redirecionando para a página de planos...")
+      return
+    }
     setIsLoading(true)
     // Simulate navigation to analysis page
     router.push(`/analisar?url=${encodeURIComponent(url)}`)
@@ -65,14 +75,25 @@ export default function DashboardPage() {
             
             <button
               type="submit"
-              disabled={isLoading || !url}
-              className="w-full sm:w-auto h-[60px] sm:h-auto px-8 py-4 rounded-xl font-bold tracking-wide text-white bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 active:scale-95 flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(37,99,235,0.3)] mt-2 sm:mt-0"
+              disabled={isLoading || (!url && !outOfQuota)}
+              className={`w-full sm:w-auto h-[60px] sm:h-auto px-8 py-4 rounded-xl font-bold tracking-wide text-white disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 active:scale-95 flex items-center justify-center gap-2 mt-2 sm:mt-0 ${
+                outOfQuota 
+                  ? "bg-gradient-to-r from-red-600 to-red-500 hover:from-red-500 hover:to-red-400 shadow-[0_0_20px_rgba(220,38,38,0.3)]" 
+                  : "bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 shadow-[0_0_20px_rgba(37,99,235,0.3)]"
+              }`}
             >
               {isLoading ? (
                 <svg className="animate-spin h-5 w-5 text-white" viewBox="0 0 24 24" fill="none">
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                 </svg>
+              ) : outOfQuota ? (
+                <>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+                  </svg>
+                  Atualizar Plano
+                </>
               ) : (
                 <>
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -83,6 +104,11 @@ export default function DashboardPage() {
               )}
             </button>
           </div>
+          {outOfQuota && (
+            <p className="absolute -bottom-8 left-0 right-0 text-center text-sm font-medium text-red-400 animate-pulse">
+              Sua cota gratuita acabou. Atualize seu plano para continuar criando!
+            </p>
+          )}
         </motion.form>
       </div>
 
