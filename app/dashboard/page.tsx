@@ -19,8 +19,7 @@ export default function DashboardPage() {
     e.preventDefault()
     if (!url) return
     if (outOfQuota) {
-      // Simulate navigation to upgrade plan page or open modal
-      alert("Redirecionando para a página de planos...")
+      router.push("/#precos")
       return
     }
     setIsLoading(true)

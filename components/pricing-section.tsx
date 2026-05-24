@@ -27,7 +27,7 @@ const packages: PrepaidPackage[] = [
     amount: 0,
     description: "Excelente para testar o poder do motor neural Unoduno.",
     features: [
-      { text: "1 Análise Completa gratuita", included: true },
+      { text: "3 Análises Completas gratuitas", included: true },
       { text: "Acesso ao Avaliador Neural", included: false },
       { text: "Acesso à Máquina de Cortes", included: false },
       { text: "Sem exportação de PDF", included: false },

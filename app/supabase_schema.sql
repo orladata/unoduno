@@ -6,7 +6,7 @@
 CREATE TABLE IF NOT EXISTS public.profiles (
     id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
     email TEXT,
-    credit_balance INTEGER NOT NULL DEFAULT 0, -- em centavos (ex: R$ 10.00 = 1000)
+    credit_balance INTEGER NOT NULL DEFAULT 300, -- em centavos (ex: R$ 3.00 = 300 = 3 créditos grátis)
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
@@ -30,7 +30,7 @@ CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
 BEGIN
     INSERT INTO public.profiles (id, email, credit_balance)
-    VALUES (new.id, new.email, 0)
+    VALUES (new.id, new.email, 300)
     ON CONFLICT (id) DO NOTHING;
     RETURN new;
 END;
@@ -44,7 +44,7 @@ CREATE TRIGGER on_auth_user_created
 
 -- 3. Backfill existing users from auth.users to public.profiles
 INSERT INTO public.profiles (id, email, credit_balance)
-SELECT id, email, 0 FROM auth.users
+SELECT id, email, 300 FROM auth.users
 ON CONFLICT (id) DO NOTHING;
 
 -- 4. Create transactions table to track payment histories
