@@ -7,12 +7,13 @@ import { z } from "zod"
 import { login, signup, signInWithGoogle, resetPassword } from "./actions"
 import { useSearchParams } from "next/navigation"
 
-const loginSchema = z.object({
+const emailSchema = z.object({
   email: z.string().email("Insira um endereço de e-mail válido"),
-  password: z.string().optional().refine((val) => {
-    // If not in forgot password state, password is required and must be at least 6 chars
-    return true; // We do dynamic validation inside onSubmit or handle schema switching
-  }),
+})
+
+const authSchema = z.object({
+  email: z.string().email("Insira um endereço de e-mail válido"),
+  password: z.string().min(6, "A senha deve ter pelo menos 6 caracteres"),
 })
 
 type LoginFormValues = {
@@ -47,14 +48,23 @@ export default function LoginPage() {
     }
   }, [searchParams])
 
+  // Dynamic schema resolution
+  const currentSchema = isForgotPassword ? emailSchema : authSchema
+
   const {
     register,
     handleSubmit,
     formState: { errors },
+    clearErrors,
   } = useForm<LoginFormValues>({
-    resolver: zodResolver(loginSchema),
+    resolver: zodResolver(currentSchema),
     mode: "onBlur",
   })
+
+  // Clear errors when toggling modes
+  useEffect(() => {
+    clearErrors()
+  }, [isSignUp, isForgotPassword, clearErrors])
 
   const handleAuthAction = (data: LoginFormValues) => {
     setCustomError(null)
@@ -68,12 +78,9 @@ export default function LoginPage() {
         return
       }
 
-      // Password validation for Auth flows
-      if (!data.password || data.password.length < 6) {
-        setCustomError("A senha deve ter pelo menos 6 caracteres")
-        return
+      if (data.password) {
+        formData.append("password", data.password)
       }
-      formData.append("password", data.password)
 
       if (isSignUp) {
         await signup(formData)
@@ -175,12 +182,15 @@ export default function LoginPage() {
                 </div>
                 <input
                   {...register("password")}
-                  className="px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-sm text-white placeholder-white/20 focus:outline-none focus:ring-2 focus:ring-white/10 transition-all"
+                  className={`px-4 py-3 bg-white/5 border ${errors.password ? 'border-red-500/50 focus:ring-red-500/10' : 'border-white/10 focus:ring-white/10'} rounded-xl text-sm text-white placeholder-white/20 focus:outline-none focus:ring-2 transition-all`}
                   id="password"
                   type="password"
                   placeholder="••••••••"
                   disabled={isPending}
                 />
+                {errors.password && (
+                  <span className="text-[11px] text-red-400 ml-1 font-medium">{errors.password.message}</span>
+                )}
               </div>
             )}
 

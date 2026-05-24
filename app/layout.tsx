@@ -8,6 +8,7 @@ const inter = Inter({
   weight: ['400', '500', '600', '700', '900'],
   variable: '--font-inter',
   display: 'swap',
+  preload: true,
 })
 
 const jetbrainsMono = JetBrains_Mono({
@@ -15,23 +16,58 @@ const jetbrainsMono = JetBrains_Mono({
   weight: ['400', '500', '600'],
   variable: '--font-jetbrains',
   display: 'swap',
+  preload: true,
 })
 
 export const metadata: Metadata = {
-  title: 'Unoduno — Onde o viral se torna seu',
-  description: 'Transforme videos virais americanos em conteudo adaptado para o mercado brasileiro com IA. Traducao neural, reconhecimento de padroes e engenharia de hooks.',
-  generator: 'v0.app',
+  metadataBase: new URL('https://unoduno.com'),
+  title: {
+    default: 'Unoduno — Onde o viral se torna seu',
+    template: '%s | Unoduno',
+  },
+  description: 'Transforme vídeos virais americanos em conteúdo adaptado para o mercado brasileiro com IA. Tradução neural, reconhecimento de padrões e engenharia de hooks.',
+  keywords: ['IA', 'YouTube', 'Tradução Neural', 'Criador de Conteúdo', 'Viral', 'Roteiro'],
+  authors: [{ name: 'Unoduno' }],
+  creator: 'Unoduno',
+  publisher: 'Unoduno',
+  formatDetection: {
+    email: false,
+    address: false,
+    telephone: false,
+  },
   openGraph: {
     title: 'Unoduno — Onde o viral se torna seu',
-    description: 'Transforme videos virais americanos em conteudo adaptado para o mercado brasileiro com IA.',
-    type: 'website',
-    locale: 'pt_BR',
+    description: 'Transforme vídeos virais americanos em conteúdo adaptado para o mercado brasileiro com IA. Tradução neural e engenharia de hooks.',
+    url: 'https://unoduno.com',
     siteName: 'Unoduno',
+    images: [
+      {
+        url: '/og-image.jpg',
+        width: 1200,
+        height: 630,
+        alt: 'Unoduno Cover Image',
+      },
+    ],
+    locale: 'pt_BR',
+    type: 'website',
   },
   twitter: {
     card: 'summary_large_image',
     title: 'Unoduno — Onde o viral se torna seu',
-    description: 'Transforme videos virais americanos em conteudo adaptado para o mercado brasileiro com IA.',
+    description: 'Transforme vídeos virais americanos em conteúdo adaptado para o mercado brasileiro com IA.',
+    creator: '@unoduno',
+    images: ['/og-image.jpg'],
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-video-preview': -1,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+    },
   },
 }
 
@@ -40,7 +76,11 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 5,
   themeColor: '#000000',
+  colorScheme: 'dark',
 }
+
+import { ThemeProvider } from '@/components/theme-provider'
+import { Toaster } from 'sonner'
 
 export default function RootLayout({
   children,
@@ -48,10 +88,13 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="pt-BR" className={`${inter.variable} ${jetbrainsMono.variable} bg-background`}>
-      <body className="font-sans antialiased bg-background text-foreground">
-        {children}
-        {process.env.NODE_ENV === 'production' && <Analytics />}
+    <html lang="pt-BR" suppressHydrationWarning className={`${inter.variable} ${jetbrainsMono.variable} bg-background`}>
+      <body className="font-sans antialiased bg-background text-foreground selection:bg-violet-500/30 selection:text-white">
+        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem disableTransitionOnChange>
+          {children}
+          <Toaster theme="dark" position="top-right" />
+          {process.env.NODE_ENV === 'production' && <Analytics />}
+        </ThemeProvider>
       </body>
     </html>
   )

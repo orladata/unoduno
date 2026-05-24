@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import { youtubeUrlSchema, buildAnalysisUrl } from "@/lib/validations"
+import { motion, AnimatePresence } from "framer-motion"
 
 // Strict type definitions
 interface FormState {
@@ -29,7 +30,6 @@ const initialFormState: FormState = {
 export function HeroSection(): React.ReactElement {
   const router = useRouter()
   const [formState, setFormState] = useState<FormState>(initialFormState)
-  const [visible, setVisible] = useState<boolean>(false)
   const [scrollHidden, setScrollHidden] = useState<boolean>(false)
 
   // Destructure for cleaner code
@@ -53,12 +53,6 @@ export function HeroSection(): React.ReactElement {
           return prev
       }
     })
-  }, [])
-
-  // Initial fade-in animation
-  useEffect(() => {
-    const timer = setTimeout(() => setVisible(true), 80)
-    return () => clearTimeout(timer)
   }, [])
 
   // Hide scroll hint after user scrolls
@@ -88,11 +82,20 @@ export function HeroSection(): React.ReactElement {
       if (!validation.success) {
         const errorMessage = validation.error.errors[0]?.message ?? "URL inválida"
         updateForm({ type: "SET_ERROR", payload: errorMessage })
+        // Trigger haptic feedback for mobile error
+        if (typeof navigator !== "undefined" && navigator.vibrate) {
+          navigator.vibrate([50, 50, 50])
+        }
         return
       }
 
       updateForm({ type: "SET_SUBMITTING", payload: true })
       updateForm({ type: "SET_SUCCESS", payload: true })
+      
+      // Trigger haptic success
+      if (typeof navigator !== "undefined" && navigator.vibrate) {
+        navigator.vibrate(100)
+      }
 
       // Redirect to analysis page after brief delay
       const redirectTimeout = setTimeout(() => {
@@ -119,230 +122,181 @@ export function HeroSection(): React.ReactElement {
     [updateForm]
   )
 
-  // Animation style helper
-  const fadeIn = (delay: number): React.CSSProperties => ({
-    opacity: visible ? 1 : 0,
-    transform: visible ? "translateY(0)" : "translateY(18px)",
-    transition: `opacity 0.6s ${delay}ms ease, transform 0.6s ${delay}ms ease`,
-    pointerEvents: visible ? "auto" : "none",
-  })
+  const containerVariants: import("framer-motion").Variants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: { staggerChildren: 0.15 },
+    },
+  }
+
+  const itemVariants: import("framer-motion").Variants = {
+    hidden: { opacity: 0, y: 24 },
+    visible: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 300, damping: 24 } },
+  }
 
   return (
     <section
       id="inicio"
-      className="relative flex flex-col items-center justify-center min-h-dvh px-6 text-center overflow-hidden"
-      style={{ paddingTop: "120px", paddingBottom: "120px" }}
+      className="relative flex flex-col items-center min-h-dvh px-6 pt-32 pb-20 text-center overflow-hidden"
       aria-label="Hero"
     >
-      {/* Ambient radial glow */}
-      <div
-        className="pointer-events-none absolute inset-0"
-        aria-hidden="true"
-        style={{
-          background:
-            "radial-gradient(ellipse 60% 45% at 50% 20%, rgba(255,255,255,0.05) 0%, transparent 70%)",
-        }}
-      />
-
-      {/* Badge */}
-      <div
-        className="inline-flex items-center gap-2 rounded-full px-4 py-1.5 mb-8"
-        style={{
-          background: "var(--glass-bg)",
-          border: "1px solid var(--glass-border)",
-          ...fadeIn(0),
-        }}
-      >
-        {/* Pulsing status dot */}
-        <span
-          className="h-1.5 w-1.5 rounded-full animate-pulse"
-          aria-hidden="true"
-          style={{ background: "#fff", boxShadow: "0 0 6px rgba(255,255,255,0.8)" }}
-        />
-        <span
-          className="text-xs tracking-widest uppercase font-medium leading-4"
-          style={{ color: "var(--text-muted)" }}
-        >
-          IA para criadores
-        </span>
+      {/* Aurora & Grid Background */}
+      <div className="absolute inset-0 -z-10 bg-black" aria-hidden="true">
+        {/* Animated Grid */}
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:40px_40px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)]" />
+        
+        {/* Aurora Glowing Orbs */}
+        <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] rounded-full bg-violet-600/30 blur-[120px] mix-blend-screen" />
+        <div className="absolute top-[-10%] right-[-10%] w-[40%] h-[40%] rounded-full bg-blue-600/20 blur-[100px] mix-blend-screen" />
       </div>
 
-      {/* H1 */}
-      <h1
-        className="font-black leading-none tracking-tight mb-6 text-balance"
-        style={{
-          fontSize: "clamp(2.75rem, 8vw, 7rem)",
-          letterSpacing: "-0.03em",
-          color: "#ffffff",
-          ...fadeIn(100),
-        }}
+      <motion.div
+        variants={containerVariants}
+        initial="hidden"
+        animate="visible"
+        className="w-full max-w-5xl flex flex-col items-center z-10"
       >
-        Onde o viral
-        <br />
-        <span style={{ color: "var(--text-subtle)" }}>se torna seu.</span>
-      </h1>
-
-      {/* Subtext */}
-      <p
-        className="max-w-xl mx-auto text-base leading-relaxed mb-12"
-        style={{
-          color: "var(--text-muted)",
-          ...fadeIn(200),
-        }}
-      >
-        Cole qualquer URL do YouTube e receba um roteiro adaptado para o mercado brasileiro —
-        com ganchos virais, linguagem nativa e pronto para publicar.
-      </p>
-
-      {/* Input + CTA */}
-      <div className="w-full max-w-2xl mx-auto" style={fadeIn(300)}>
-        <form
-          onSubmit={handleSubmit}
-          className="flex flex-col sm:flex-row items-stretch gap-2 p-2 rounded-2xl transition-all duration-200"
-          style={{
-            background: "var(--glass-bg)",
-            border: error ? "1px solid rgba(239,68,68,0.5)" : "1px solid var(--glass-border)",
-            backdropFilter: "blur(12px)",
-            WebkitBackdropFilter: "blur(12px)",
-          }}
-          aria-label="Analisar vídeo do YouTube"
-          noValidate
+        {/* Badge */}
+        <motion.div
+          variants={itemVariants}
+          className="inline-flex items-center gap-2 rounded-full px-4 py-1.5 mb-8 bg-white/5 border border-white/10 backdrop-blur-sm"
         >
-          <label htmlFor="youtube-url" className="sr-only">
-            URL do YouTube
-          </label>
-          <input
-            id="youtube-url"
-            type="text"
-            inputMode="url"
-            value={url}
-            onChange={handleInputChange}
-            placeholder="https://youtube.com/watch?v=..."
-            className="flex-1 bg-transparent px-4 py-3 text-sm outline-none text-white font-sans min-w-0 disabled:opacity-50"
-            style={{ caretColor: "#fff" }}
-            aria-required="true"
-            aria-invalid={error !== null}
-            aria-describedby={error ? "url-error" : undefined}
-            autoComplete="url"
-            spellCheck={false}
-            disabled={isSubmitting}
-            maxLength={200}
+          <span
+            className="h-2 w-2 rounded-full bg-blue-400 shadow-[0_0_8px_rgba(96,165,250,0.8)] animate-pulse"
+            aria-hidden="true"
           />
-          <button
-            type="submit"
-            disabled={isSubmitting}
-            className="shrink-0 px-7 py-3 rounded-xl text-sm font-semibold tracking-wide cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 disabled:opacity-70 disabled:cursor-not-allowed active:scale-[0.98] transition-transform flex items-center justify-center gap-2"
-            style={{
-              background: "#ffffff",
-              color: "#000000",
-              minHeight: "48px",
-              transition: "box-shadow 0.3s ease, transform 0.1s ease",
-            }}
-            onMouseEnter={(e) => {
-              if (!isSubmitting)
-                e.currentTarget.style.boxShadow = "0 0 32px 6px rgba(255,255,255,0.2)"
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.boxShadow = "none"
-            }}
+          <span className="text-[11px] tracking-[0.2em] uppercase font-bold text-slate-300">
+            Inteligência Artificial Premium
+          </span>
+        </motion.div>
+
+        {/* H1 Typography Overhaul */}
+        <motion.h1
+          variants={itemVariants}
+          className="text-5xl md:text-7xl lg:text-[6rem] font-black leading-[1.05] tracking-tighter mb-6 text-balance text-transparent bg-clip-text bg-gradient-to-b from-white to-white/60"
+        >
+          Onde o viral
+          <br />
+          <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-violet-400">se torna seu.</span>
+        </motion.h1>
+
+        {/* Subtext */}
+        <motion.p
+          variants={itemVariants}
+          className="max-w-2xl mx-auto text-base md:text-lg leading-relaxed mb-12 text-slate-400"
+        >
+          Cole qualquer URL do YouTube e deixe nossos agentes neurais criarem o roteiro perfeito para o mercado brasileiro — com ganchos virais e precisão de retenção.
+        </motion.p>
+
+        {/* Input + CTA */}
+        <motion.div variants={itemVariants} className="w-full max-w-2xl mx-auto mb-20 relative z-20">
+          <motion.form
+            onSubmit={handleSubmit}
+            animate={error ? { x: [-10, 10, -10, 10, 0] } : {}}
+            transition={{ duration: 0.4 }}
+            className={`flex flex-col sm:flex-row items-stretch gap-2 p-2 rounded-2xl transition-all duration-300 backdrop-blur-xl ${
+              error
+                ? "bg-red-950/20 border border-red-500/50 shadow-[0_0_30px_rgba(239,68,68,0.2)]"
+                : "bg-white/5 border border-white/10 shadow-[0_0_40px_rgba(255,255,255,0.05)] focus-within:border-blue-500/50 focus-within:shadow-[0_0_40px_rgba(59,130,246,0.3)] hover:border-white/20"
+            }`}
+            aria-label="Analisar vídeo do YouTube"
+            noValidate
           >
-            {isSubmitting && (
-              <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                <circle
-                  className="opacity-25"
-                  cx="12"
-                  cy="12"
-                  r="10"
-                  stroke="currentColor"
-                  strokeWidth="4"
-                />
-                <path
-                  className="opacity-75"
-                  fill="currentColor"
-                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-                />
+            <label htmlFor="youtube-url" className="sr-only">URL do YouTube</label>
+            <div className="relative flex-1 flex items-center px-4">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-white/30 mr-2 shrink-0">
+                <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+                <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
               </svg>
-            )}
-            {isSubmitting ? "Analisando..." : "Analisar"}
-          </button>
-        </form>
-
-        {/* Error message */}
-        {error && (
-          <p id="url-error" className="text-xs mt-2 text-red-400" role="alert">
-            {error}
-          </p>
-        )}
-
-        {/* Success message */}
-        {success && (
-          <div
-            className="flex items-center justify-center gap-2 mt-3 text-sm font-medium"
-            role="status"
-            style={{ color: "#4ade80" }}
-          >
-            <svg
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden="true"
+              <input
+                id="youtube-url"
+                type="text"
+                inputMode="url"
+                value={url}
+                onChange={handleInputChange}
+                placeholder="Cole o link de um vídeo viral gringo..."
+                className="w-full bg-transparent py-3 text-[15px] outline-none text-white font-sans disabled:opacity-50 placeholder:text-white/30"
+                aria-required="true"
+                disabled={isSubmitting}
+              />
+            </div>
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="group relative overflow-hidden shrink-0 px-8 py-3.5 sm:py-3 rounded-xl text-[15px] font-bold tracking-wide cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed bg-blue-600 hover:bg-blue-500 text-white transition-all duration-300 active:scale-95 flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(37,99,235,0.4)] hover:shadow-[0_0_40px_rgba(37,99,235,0.8)]"
             >
-              <polyline points="20 6 9 17 4 12" />
-            </svg>
-            Roteiro sendo gerado! Redirecionando...
+              <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]" />
+              {isSubmitting ? (
+                <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24" fill="none"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+              ) : (
+                <>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                  <span>Analisar</span>
+                </>
+              )}
+            </button>
+          </motion.form>
+
+          {/* Messages */}
+          <AnimatePresence>
+            {error && (
+              <motion.p initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="text-sm font-medium text-red-400 mt-3 text-left pl-4">
+                {error}
+              </motion.p>
+            )}
+            {success && (
+              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="flex items-center justify-center gap-2 mt-4 text-[15px] font-medium text-emerald-400">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M20 6L9 17l-5-5" /></svg>
+                Iniciando engenharia reversa...
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </motion.div>
+
+        {/* Floating Glassmorphism Mockup */}
+        <motion.div
+          variants={itemVariants}
+          className="w-full relative z-10"
+          initial={{ y: 50, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ duration: 1, delay: 0.5, type: "spring" }}
+        >
+          {/* Subtle Glow behind the mockup */}
+          <div className="absolute inset-0 bg-blue-500/20 blur-[100px] rounded-full scale-75" />
+          
+          <div className="relative mx-auto w-full max-w-4xl rounded-t-3xl border-t border-l border-r border-white/10 bg-black/40 backdrop-blur-2xl p-4 sm:p-6 shadow-2xl overflow-hidden" style={{ transform: "perspective(1000px) rotateX(10deg)", transformOrigin: "bottom" }}>
+            {/* Fake Mac Window Controls */}
+            <div className="flex gap-2 mb-6">
+              <div className="w-3 h-3 rounded-full bg-red-500/50" />
+              <div className="w-3 h-3 rounded-full bg-yellow-500/50" />
+              <div className="w-3 h-3 rounded-full bg-green-500/50" />
+            </div>
+
+            {/* Fake Dashboard Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="md:col-span-2 h-40 rounded-2xl bg-white/5 border border-white/5 p-4 flex flex-col justify-between">
+                <div className="flex justify-between items-center">
+                  <div className="w-24 h-4 rounded-md bg-white/10 animate-pulse" />
+                  <div className="w-8 h-8 rounded-full bg-blue-500/20 flex items-center justify-center"><div className="w-2 h-2 rounded-full bg-blue-400" /></div>
+                </div>
+                <div className="space-y-2">
+                  <div className="w-3/4 h-3 rounded bg-white/10" />
+                  <div className="w-1/2 h-3 rounded bg-white/10" />
+                </div>
+              </div>
+              <div className="h-40 rounded-2xl bg-gradient-to-br from-violet-600/20 to-blue-600/20 border border-white/5 p-4 flex flex-col justify-between">
+                <div className="w-10 h-10 rounded-xl bg-white/10 backdrop-blur-md" />
+                <div className="w-full h-2 rounded bg-white/10 mt-auto overflow-hidden">
+                  <div className="w-[60%] h-full bg-blue-400" />
+                </div>
+              </div>
+            </div>
+            
+            <div className="absolute bottom-0 left-0 w-full h-1/2 bg-gradient-to-t from-black via-black/80 to-transparent" />
           </div>
-        )}
-
-        <p className="text-xs mt-3 leading-4" style={{ color: "var(--text-subtle)" }}>
-          Sem cartão de crédito — análise grátis por 7 dias
-        </p>
-      </div>
-
-      {/* Scroll hint — hidden after first scroll */}
-      <div
-        className="absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2"
-        aria-hidden="true"
-        style={{
-          opacity: visible && !scrollHidden ? 0.35 : 0,
-          transition: "opacity 0.6s ease",
-          pointerEvents: "none",
-        }}
-      >
-        <span
-          className="text-xs tracking-widest uppercase font-medium leading-5"
-          style={{ color: "var(--text-subtle)", fontSize: "11px" }}
-        >
-          scroll
-        </span>
-        <div
-          className="h-8 w-px"
-          style={{
-            background: "linear-gradient(to bottom, transparent, rgba(255,255,255,0.5))",
-          }}
-        />
-        <svg
-          width="10"
-          height="6"
-          viewBox="0 0 10 6"
-          fill="none"
-          focusable="false"
-          style={{ marginTop: "-2px" }}
-          aria-hidden="true"
-        >
-          <path
-            d="M1 1l4 4 4-4"
-            stroke="rgba(255,255,255,0.5)"
-            strokeWidth="1.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </svg>
-      </div>
+        </motion.div>
+      </motion.div>
     </section>
   )
 }

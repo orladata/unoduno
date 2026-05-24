@@ -1,6 +1,7 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useRef } from "react"
+import { useReactToPrint } from "react-to-print"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -135,6 +136,9 @@ export function ViralEngineerAnalysis({
   const [activeTab, setActiveTab] = useState<"origin" | "essence" | "audience" | "blueprint">("origin")
   const [exported, setExported] = useState(false)
   const [isPlayingVideo, setIsPlayingVideo] = useState(false)
+
+  const printRef = useRef<HTMLDivElement>(null)
+  const handlePrint = useReactToPrint({ contentRef: printRef })
 
   if (isLoading) {
     return <AnalysisSkeleton />
@@ -530,27 +534,110 @@ export function ViralEngineerAnalysis({
       </Card>
 
       {/* Export All */}
-      <div className="flex gap-2 justify-center pt-4 pb-8">
+      <div className="flex flex-col sm:flex-row gap-4 justify-center pt-4 pb-8">
         <Button 
           onClick={handleExport}
-          className={`gap-2 transition-all duration-200 ${exported ? 'bg-green-600 hover:bg-green-700 text-white' : ''}`}
+          className={`gap-2 h-12 px-6 transition-all duration-200 ${exported ? 'bg-green-600 hover:bg-green-700 text-white' : 'bg-white/10 hover:bg-white/20 text-white border border-white/20'}`}
         >
           {exported ? (
             <>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                 <polyline points="20 6 9 17 4 12" />
               </svg>
-              Análise Completa Copiada!
+              JSON Copiado!
             </>
           ) : (
             <>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
                 <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
               </svg>
-              Exportar Análise Completa
+              Copiar Estrutura (JSON)
             </>
           )}
         </Button>
+
+        <Button 
+          onClick={() => handlePrint()}
+          className="gap-2 h-12 px-6 bg-blue-600 hover:bg-blue-700 text-white transition-all shadow-[0_0_15px_rgba(37,99,235,0.4)] hover:shadow-[0_0_25px_rgba(37,99,235,0.6)]"
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <polyline points="6 9 6 2 18 2 18 9" />
+            <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
+            <rect x="6" y="14" width="12" height="8" />
+          </svg>
+          Exportar PDF Profissional
+        </Button>
+      </div>
+
+      {/* Hidden Printable Component */}
+      <div className="absolute left-[-9999px] top-[-9999px]">
+        <div ref={printRef} className="p-10 bg-white text-black font-sans w-[800px]">
+          <div className="border-b-4 border-black pb-6 mb-8 text-center">
+            <h1 className="text-4xl font-black mb-2 uppercase">{analysis.videoTitle}</h1>
+            <p className="text-gray-500 text-sm font-bold tracking-widest uppercase">Unoduno Neural Engine • Dossie Viral</p>
+          </div>
+
+          <div className="space-y-10">
+            {/* Sec 1: Essencia */}
+            <section>
+              <h2 className="text-2xl font-bold bg-black text-white px-4 py-2 inline-block mb-4">1. Essência Original</h2>
+              <div className="space-y-4 pl-4 border-l-4 border-gray-200">
+                <div>
+                  <h3 className="font-bold text-gray-800 uppercase text-xs">Mensagem Central</h3>
+                  <p className="text-gray-900 font-serif italic text-lg">&quot;{safeStr(analysis.originalEssence.coreMessage)}&quot;</p>
+                </div>
+                <div>
+                  <h3 className="font-bold text-gray-800 uppercase text-xs">Gatilhos</h3>
+                  <p className="text-gray-700">{safeStr(analysis.originalEssence.psychologicalTriggers)}</p>
+                </div>
+                <div>
+                  <h3 className="font-bold text-gray-800 uppercase text-xs">Ritmo e Estilo</h3>
+                  <p className="text-gray-700">{safeStr(analysis.originalEssence.pacingAndDelivery)} • {safeStr(analysis.originalEssence.visualStyle)}</p>
+                </div>
+              </div>
+            </section>
+
+            {/* Sec 2: Audiencia */}
+            <section>
+              <h2 className="text-2xl font-bold bg-black text-white px-4 py-2 inline-block mb-4">2. Psicologia do Público</h2>
+              <div className="grid grid-cols-2 gap-6 pl-4 border-l-4 border-gray-200">
+                <div>
+                  <h3 className="font-bold text-gray-800 uppercase text-xs">Retenção</h3>
+                  <p className="text-gray-700 text-sm">{safeStr(analysis.audienceInsights.viewsAndEngagementAnalysis)}</p>
+                </div>
+                <div>
+                  <h3 className="font-bold text-gray-800 uppercase text-xs">Dores Ativadas</h3>
+                  <p className="text-gray-700 text-sm">{safeStr(analysis.audienceInsights.audiencePainPoints)}</p>
+                </div>
+              </div>
+            </section>
+
+            {/* Sec 3: Blueprint */}
+            <section>
+              <h2 className="text-2xl font-bold bg-black text-white px-4 py-2 inline-block mb-4">3. Guia de Recriação (Gravar Agora)</h2>
+              <div className="pl-4 border-l-4 border-gray-200 space-y-4">
+                <div>
+                  <h3 className="font-bold text-gray-800 uppercase text-xs">Passo a Passo</h3>
+                  <p className="text-gray-700 text-sm whitespace-pre-line">{safeStr(analysis.recreationBlueprint.stepByStepAdaptation)}</p>
+                </div>
+                <div className="bg-gray-100 p-4 rounded-lg mt-4">
+                  <h3 className="font-bold text-black uppercase text-xs mb-2">Regras de Ouro</h3>
+                  <p className="text-gray-800 font-bold text-sm">{safeStr(analysis.recreationBlueprint.recreationRules)}</p>
+                </div>
+              </div>
+            </section>
+
+            {/* Sec 4: Aprendizado Final */}
+            <section className="bg-black text-white p-6 rounded-xl mt-12">
+              <h3 className="font-black uppercase text-yellow-400 tracking-widest text-xs mb-2">O Segredo (Golden Nugget)</h3>
+              <p className="text-xl font-serif italic">&quot;{safeStr(analysis.keyLearning)}&quot;</p>
+            </section>
+          </div>
+
+          <div className="mt-16 text-center text-gray-400 text-xs">
+            <p>Gerado por Unoduno AI Engine • {new Date().toLocaleDateString('pt-BR')}</p>
+          </div>
+        </div>
       </div>
     </div>
   )

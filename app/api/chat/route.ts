@@ -159,36 +159,33 @@ export async function POST(req: Request) {
     const normalizedUrl = `https://www.youtube.com/watch?v=${videoId}`
     currentVideoId = videoId;
 
-    // ── PHASE 0: KV Idempotency & Auth Check ─────────────────────────────────
-    const cachedStatus = await kv.get(`video:${videoId}`);
-    if (cachedStatus === 'processing') {
+    const supabaseAuth = await createServerClient()
+    const { data: { user } } = await supabaseAuth.auth.getUser()
+
+    if (!user) {
+      return Response.json(
+        { error: 'Não autorizado. Por favor, faça login.', code: 'UNAUTHORIZED' },
+        { status: 401 }
+      )
+    }
+    const userId = user.id
+
+    // ── PHASE 0: KV Cache & Idempotency ──────────────────────────────────────
+    const kvData = await kv.get<{ status: string; script_blob_url?: string }>(`video:${videoId}`)
+    
+    if (kvData?.status === 'processing') {
       return Response.json(
         { error: 'Este vídeo já está sendo processado por outro usuário.', code: 'ALREADY_PROCESSING' }, 
         { status: 409 }
-      );
+      )
     }
 
-    const supabaseAdmin = createSupabaseClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
-    )
-
-    // Check if we already have a completed analysis for this video to avoid duplicate AI costs
-    const { data: existingVideo } = await supabaseAdmin
-      .from('processed_videos')
-      .select('script_blob_url')
-      .eq('video_id', videoId)
-      .eq('status', 'completed')
-      .maybeSingle()
-
-    if (existingVideo?.script_blob_url) {
-      console.log(`[API] Serving cached analysis for video: ${videoId}`)
+    if (kvData?.status === 'completed' && kvData.script_blob_url) {
+      console.log(`[API] Serving KV cached analysis for video: ${videoId}`)
       try {
-        const cachedRes = await fetch(existingVideo.script_blob_url)
+        const cachedRes = await fetch(kvData.script_blob_url)
         if (cachedRes.ok) {
           const cachedText = await cachedRes.text()
-          // Ensure KV status is completed
-          await kv.set(`video:${videoId}`, 'completed', { ex: 86400 })
           return new Response(cachedText, {
             headers: {
               'Content-Type': 'text/plain; charset=utf-8',
@@ -197,16 +194,73 @@ export async function POST(req: Request) {
           })
         }
       } catch (cacheError) {
-        console.error(`[API] Failed to fetch cached blob for ${videoId}, re-processing:`, cacheError)
+        console.error(`[API] Failed to fetch KV cached blob for ${videoId}:`, cacheError)
       }
+    }
+
+    const supabaseAdmin = createSupabaseClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    )
+
+    // Check Supabase if KV missed
+    const { data: existingVideo } = await supabaseAdmin
+      .from('processed_videos')
+      .select('script_blob_url')
+      .eq('video_id', videoId)
+      .eq('status', 'completed')
+      .maybeSingle()
+
+    if (existingVideo?.script_blob_url) {
+      console.log(`[API] Serving Supabase cached analysis for video: ${videoId}`)
+      try {
+        const cachedRes = await fetch(existingVideo.script_blob_url)
+        if (cachedRes.ok) {
+          const cachedText = await cachedRes.text()
+          // Hydrate KV Cache
+          await kv.set(`video:${videoId}`, { status: 'completed', script_blob_url: existingVideo.script_blob_url }, { ex: 86400 })
+          return new Response(cachedText, {
+            headers: {
+              'Content-Type': 'text/plain; charset=utf-8',
+              'X-Cached-Response': 'true'
+            }
+          })
+        }
+      } catch (cacheError) {
+        console.error(`[API] Failed to fetch Supabase cached blob for ${videoId}:`, cacheError)
+      }
+    }
+
+    // ── PHASE 0.5: PAYWALL (Limite de Uso Free) ──────────────────────────────
+    // Check if the user is a premium subscriber
+    const { data: profile } = await supabaseAdmin
+      .from('profiles')
+      .select('subscription_tier')
+      .eq('id', userId)
+      .maybeSingle()
+    
+    const isPremium = profile?.subscription_tier === 'pro' || profile?.subscription_tier === 'agency'
+
+    if (!isPremium) {
+      const usageKey = `usage:${userId}`
+      const usageCount = await kv.get<number>(usageKey) || 0
+      
+      if (usageCount >= 1) {
+        return Response.json(
+          { 
+            error: 'Você atingiu o limite do plano gratuito (1 análise). Atualize seu plano para continuar.', 
+            code: 'PAYWALL_REACHED' 
+          }, 
+          { status: 402 }
+        )
+      }
+      
+      // Increment usage for free tier
+      await kv.incr(usageKey)
     }
     
     // Lock in KV (5 mins TTL)
-    await kv.set(`video:${videoId}`, 'processing', { ex: 300 });
-
-    const supabaseAuth = await createServerClient()
-    const { data: { user } } = await supabaseAuth.auth.getUser()
-    const userId = user?.id || null
+    await kv.set(`video:${videoId}`, { status: 'processing' }, { ex: 300 });
 
     // ── PHASE 1: Fetch real YouTube transcript ──────────────────────────────
     console.log(`[API] Fetching transcript for video: ${videoId}`)
@@ -337,7 +391,7 @@ Estrutura JSON obrigatória:
 
     // ── PHASE 4: Stream Gemini analysis ────────────────────────────────────
     const result = await streamText({
-      model: google("gemini-2.5-flash"),
+      model: google("gemini-3.5-flash"),
       temperature: 0.35,
       system: systemPrompt,
       messages: [
@@ -380,7 +434,7 @@ Estrutura JSON obrigatória:
             }
           ])
 
-          await kv.set(`video:${videoId}`, 'completed', { ex: 86400 });
+          await kv.set(`video:${videoId}`, { status: 'completed', script_blob_url: scriptBlob.url }, { ex: 86400 });
           console.log(`[API] Finished processing ${videoId}.`)
         } catch (bgError) {
           console.error(`[API] Background processing error for ${videoId}:`, bgError)

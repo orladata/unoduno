@@ -88,3 +88,21 @@ export function buildAnalysisUrl(videoUrl: string): string {
   // Use encodeURIComponent for safe URL encoding
   return `/analisar?url=${encodeURIComponent(validation.data)}`
 }
+
+/**
+ * Authentication Schemas for Login and Registration
+ */
+export const loginSchema = z.object({
+  email: z.string().email({ message: "Por favor, insira um e-mail válido." }),
+  password: z.string().min(1, { message: "A senha não pode ficar em branco." }),
+})
+
+export const registerSchema = z.object({
+  email: z.string().email({ message: "Por favor, insira um e-mail válido." }),
+  password: z
+    .string()
+    .min(8, { message: "A senha deve conter no mínimo 8 caracteres." })
+    .max(100, { message: "A senha é muito longa." }),
+  // Additional complexity could be added here if requested, 
+  // like requiring at least one number, uppercase, etc.
+})

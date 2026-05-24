@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { useReveal } from "@/hooks/use-reveal"
+import { motion, AnimatePresence } from "framer-motion"
 
 const faqs = [
   {
@@ -35,75 +36,68 @@ function FAQItem({
   isOpen,
   onToggle,
   index,
-  sectionVisible,
 }: {
   faq: { q: string; a: string }
   isOpen: boolean
   onToggle: () => void
   index: number
-  sectionVisible: boolean
 }) {
-  const delay = 100 + index * 50
-  const questionId = `faq-q-${index}`
-  const answerId = `faq-a-${index}`
-
+  const panelId = `faq-panel-${index}`
   return (
-    <div
-      className="border-b"
-      style={{
-        borderColor: "var(--glass-border)",
-        opacity: sectionVisible ? 1 : 0,
-        transform: sectionVisible ? "translateY(0)" : "translateY(12px)",
-        transition: `opacity 0.5s ${delay}ms ease, transform 0.5s ${delay}ms ease`,
-        willChange: sectionVisible ? "auto" : "opacity, transform",
-      }}
+    <motion.div
+      initial={false}
+      className="border-b border-white/10 overflow-hidden"
     >
       <button
+        id={`faq-btn-${index}`}
         type="button"
-        id={questionId}
         onClick={onToggle}
-        className="w-full flex items-center justify-between py-5 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 rounded-sm min-h-[56px]"
+        className="w-full flex items-center justify-between py-6 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 rounded-lg min-h-[60px] group transition-colors"
         aria-expanded={isOpen}
-        aria-controls={answerId}
+        aria-controls={panelId}
       >
-        <span className="text-sm font-medium text-white pr-4 leading-relaxed">{faq.q}</span>
-        <svg
-          width="16"
-          height="16"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.5"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          className="shrink-0 transition-transform duration-200"
-          style={{
-            color: "var(--text-muted)",
-            transform: isOpen ? "rotate(45deg)" : "rotate(0deg)",
-          }}
+        <span className="text-[15px] md:text-base font-semibold text-slate-200 group-hover:text-white transition-colors pr-6">
+          {faq.q}
+        </span>
+        <motion.div
+          animate={{ rotate: isOpen ? 45 : 0 }}
+          transition={{ type: "spring", stiffness: 300, damping: 20 }}
+          className="shrink-0 flex items-center justify-center w-8 h-8 rounded-full bg-white/5 border border-white/10 group-hover:bg-white/10 text-slate-400 group-hover:text-white transition-colors"
           aria-hidden="true"
         >
-          <line x1="12" y1="5" x2="12" y2="19" />
-          <line x1="5" y1="12" x2="19" y2="12" />
-        </svg>
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <line x1="12" y1="5" x2="12" y2="19" />
+            <line x1="5" y1="12" x2="19" y2="12" />
+          </svg>
+        </motion.div>
       </button>
-      <div
-        id={answerId}
-        role="region"
-        aria-labelledby={questionId}
-        className="grid transition-all duration-300"
-        style={{
-          gridTemplateRows: isOpen ? "1fr" : "0fr",
-          opacity: isOpen ? 1 : 0,
-        }}
-      >
-        <div className="overflow-hidden">
-          <p className="text-sm leading-relaxed pb-5" style={{ color: "var(--text-muted)" }}>
-            {faq.a}
-          </p>
-        </div>
-      </div>
-    </div>
+      <AnimatePresence initial={false}>
+        {isOpen && (
+          <motion.div
+            id={panelId}
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ type: "spring", stiffness: 300, damping: 24 }}
+            role="region"
+            aria-labelledby={`faq-btn-${index}`}
+          >
+            <p className="text-[14px] md:text-[15px] leading-relaxed text-slate-400 pb-6 pr-12">
+              {faq.a}
+            </p>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
   )
 }
 
@@ -111,52 +105,55 @@ export function FAQSection() {
   const { ref, visible } = useReveal(0.1)
   const [openIndex, setOpenIndex] = useState<number | null>(null)
 
+  const containerVariants: import("framer-motion").Variants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: { staggerChildren: 0.1 },
+    },
+  }
+
+  const itemVariants: import("framer-motion").Variants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 300, damping: 24 } },
+  }
+
   return (
     <section
       id="faq"
       ref={ref}
-      style={{ paddingTop: "120px", paddingBottom: "120px" }}
-      className="px-6 max-w-2xl mx-auto"
+      className="py-32 px-6 max-w-3xl mx-auto"
       aria-label="Perguntas frequentes"
     >
-      {/* Title */}
-      <div
-        className="text-center mb-12"
-        style={{
-          opacity: visible ? 1 : 0,
-          transform: visible ? "translateY(0)" : "translateY(16px)",
-          pointerEvents: visible ? "auto" : "none",
-          transition: "opacity 0.6s ease, transform 0.6s ease",
-        }}
+      <motion.div
+        variants={containerVariants}
+        initial="hidden"
+        animate={visible ? "visible" : "hidden"}
+        className="w-full"
       >
-        <p className="text-xs tracking-widest uppercase mb-4 font-medium leading-4" style={{ color: "var(--text-subtle)" }}>
-          FAQ
-        </p>
-        <h2
-          className="font-black text-balance"
-          style={{
-            fontSize: "clamp(1.75rem, 4vw, 2.75rem)",
-            letterSpacing: "-0.03em",
-            color: "#ffffff",
-          }}
-        >
-          Perguntas frequentes
-        </h2>
-      </div>
+        {/* Title */}
+        <motion.div variants={itemVariants} className="text-center mb-16">
+          <p className="text-[11px] tracking-[0.2em] uppercase mb-4 font-bold text-slate-500">
+            FAQ
+          </p>
+          <h2 className="font-black text-3xl md:text-5xl tracking-tighter text-balance text-white">
+            Perguntas frequentes
+          </h2>
+        </motion.div>
 
-      {/* FAQ list */}
-      <div className="border-t" style={{ borderColor: "var(--glass-border)" }}>
-        {faqs.map((faq, i) => (
-          <FAQItem
-            key={faq.q}
-            faq={faq}
-            isOpen={openIndex === i}
-            onToggle={() => setOpenIndex(openIndex === i ? null : i)}
-            index={i}
-            sectionVisible={visible}
-          />
-        ))}
-      </div>
+        {/* FAQ list */}
+        <motion.div variants={itemVariants} className="border-t border-white/10">
+          {faqs.map((faq, i) => (
+            <FAQItem
+              key={faq.q}
+              index={i}
+              faq={faq}
+              isOpen={openIndex === i}
+              onToggle={() => setOpenIndex(openIndex === i ? null : i)}
+            />
+          ))}
+        </motion.div>
+      </motion.div>
     </section>
   )
 }

@@ -647,8 +647,15 @@ export default function AnalisarPage() {
       {/* Main content */}
       <main className="pt-24 pb-20 px-4 sm:px-6 max-w-3xl mx-auto">
         <Suspense fallback={
-          <div className="flex items-center justify-center py-24" role="status" aria-label="Carregando">
-            <SpinnerIcon size={32} />
+          <div className="flex flex-col items-center justify-center gap-8 py-24 w-full" role="status" aria-label="Inicializando motor de análise...">
+            <div className="relative flex items-center justify-center">
+              <div className="absolute w-28 h-28 rounded-full animate-ping" style={{ background: "radial-gradient(circle, rgba(255,255,255,0.03) 0%, transparent 70%)", animationDuration: "2s" }} />
+              <div className="w-16 h-16 rounded-2xl border flex items-center justify-center" style={{ borderColor: "rgba(255,255,255,0.08)", background: "rgba(255,255,255,0.04)" }}>
+                <SpinnerIcon size={28} />
+              </div>
+            </div>
+            <div className="w-48 h-4 bg-white/10 rounded-full animate-pulse" />
+            <div className="w-32 h-3 bg-white/5 rounded-full animate-pulse mt-2" />
           </div>
         }>
           <AnalisarInner />

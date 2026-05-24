@@ -140,6 +140,13 @@
   margin-left: 2px;
 }
 
+/* Shimmer effect for buttons */
+@keyframes shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
 /* Chrome autofill override */
 input:-webkit-autofill,
 input:-webkit-autofill:hover,
