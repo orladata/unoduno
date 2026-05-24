@@ -22,13 +22,20 @@ export async function POST(req: NextRequest) {
       )
     }
 
+    // UUID v4 regex validation
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(userId)) {
+      return NextResponse.json(
+        { error: "ID de usuário inválido." },
+        { status: 400 }
+      )
+    }
+
     // Convert BRL amount to cents (e.g. R$ 10.00 -> 1000 cents)
     const unitAmount = Math.round(amount * 100)
 
-    // Dynamically fetch origin to construct callback URLs
-    const host = req.headers.get("host") || "localhost:3000"
-    const proto = req.headers.get("x-forwarded-proto") || "http"
-    const origin = `${proto}://${host}`
+    // Define the base URL safely, falling back to localhost for dev
+    const origin = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"
 
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ["card", "pix"],

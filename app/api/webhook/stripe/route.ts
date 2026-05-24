@@ -30,10 +30,20 @@ export async function POST(req: NextRequest) {
   }
 
   // 2. Handle the event
-  if (event.type === "checkout.session.completed") {
+  if (
+    event.type === "checkout.session.completed" ||
+    event.type === "checkout.session.async_payment_succeeded"
+  ) {
     const session = event.data.object as Stripe.Checkout.Session
     const userId = session.client_reference_id || session.metadata?.userId
     const amountTotal = session.amount_total // em centavos
+
+    // IMPORTANT: Se o evento for completed, mas o pagamento ainda não foi feito (ex: Pix/Boleto gerado, mas não pago), ignoramos.
+    // O webhook vai disparar depois o `async_payment_succeeded` quando for efetivamente pago.
+    if (event.type === "checkout.session.completed" && session.payment_status !== "paid") {
+      console.log(`Checkout completed but payment is ${session.payment_status}. Waiting for async payment success.`)
+      return NextResponse.json({ received: true, status: "pending_async_payment" })
+    }
 
     if (!userId || !amountTotal) {
       console.error("Missing userId or amount_total in Stripe session completed event.")
@@ -47,10 +57,12 @@ export async function POST(req: NextRequest) {
 
     try {
       // Prevent duplicate processing (Webhook idempotency)
+      // Usamos o status completed para marcar que a transação finalizou
       const { data: existingTx } = await supabaseAdmin
         .from("transactions")
-        .select("id")
+        .select("id, status")
         .eq("stripe_session_id", session.id)
+        .eq("status", "completed")
         .maybeSingle()
 
       if (existingTx) {
@@ -58,15 +70,15 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ received: true, status: "duplicate" })
       }
 
-      // a) Insert the transaction record
+      // a) Insert or Update the transaction record
       const { error: txError } = await supabaseAdmin
         .from("transactions")
-        .insert({
+        .upsert({
           user_id: userId,
           stripe_session_id: session.id,
           amount: amountTotal,
           status: "completed",
-        })
+        }, { onConflict: "stripe_session_id" })
 
       if (txError) {
         console.error("Failed to insert transaction record:", txError)

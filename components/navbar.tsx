@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
+import { usePathname } from "next/navigation"
+import { LoginModal } from "./login-modal"
 
 const navLinks = [
   { label: "Funcionalidades", href: "#funcionalidades" },
@@ -10,9 +12,13 @@ const navLinks = [
 ]
 
 export function Navbar() {
+  const pathname = usePathname()
+  const isDashboard = pathname?.startsWith("/dashboard")
+
   const [scrolled, setScrolled] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
   const [activeSection, setActiveSection] = useState("")
+  const [loginModalOpen, setLoginModalOpen] = useState(false)
 
   useEffect(() => {
     const handleScroll = () => {
@@ -92,34 +98,42 @@ export function Navbar() {
           </a>
 
           {/* Desktop nav */}
-          <nav className="hidden md:flex items-center gap-2" aria-label="Navegação principal">
-            {navLinks.map((item) => (
-              <a
-                key={item.label}
-                href={item.href}
-                className={`relative px-4 py-2.5 rounded-lg text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 group ${
-                  activeSection === item.href ? "text-white" : "text-slate-400 hover:text-white"
-                }`}
-              >
-                {item.label}
-                {activeSection === item.href && (
-                  <motion.div
-                    layoutId="navbar-underline"
-                    className="absolute bottom-1 left-4 right-4 h-[2px] bg-white rounded-full"
-                    transition={{ type: "spring", stiffness: 350, damping: 30 }}
-                  />
-                )}
-              </a>
-            ))}
-          </nav>
+          {!isDashboard && (
+            <nav className="hidden md:flex items-center gap-2" aria-label="Navegação principal">
+              {navLinks.map((item) => (
+                <a
+                  key={item.label}
+                  href={item.href}
+                  className={`relative px-4 py-2.5 rounded-lg text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 group ${
+                    activeSection === item.href ? "text-white" : "text-slate-400 hover:text-white"
+                  }`}
+                >
+                  {item.label}
+                  {activeSection === item.href && (
+                    <motion.div
+                      layoutId="navbar-underline"
+                      className="absolute bottom-1 left-4 right-4 h-[2px] bg-white rounded-full"
+                      transition={{ type: "spring", stiffness: 350, damping: 30 }}
+                    />
+                  )}
+                </a>
+              ))}
+            </nav>
+          )}
 
           <div className="flex items-center gap-4">
-            <a
-              href="#precos"
-              className="hidden sm:flex items-center justify-center min-h-[44px] min-w-[100px] text-sm font-semibold px-5 rounded-full transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 bg-white/10 border border-white/10 text-white hover:bg-white hover:text-black active:scale-95"
-            >
-              Entrar
-            </a>
+            {isDashboard ? (
+              <button className="hidden sm:flex items-center justify-center h-10 w-10 rounded-full bg-gradient-to-tr from-blue-500 to-emerald-400 text-white font-bold border border-white/20 hover:scale-105 transition-transform">
+                W
+              </button>
+            ) : (
+              <button
+                onClick={() => setLoginModalOpen(true)}
+                className="hidden sm:flex items-center justify-center min-h-[44px] min-w-[100px] text-sm font-semibold px-5 rounded-full transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 bg-white/10 border border-white/10 text-white hover:bg-white hover:text-black active:scale-95"
+              >
+                Entrar
+              </button>
+            )}
 
             {/* Mobile hamburger — 48x48px min touch target compliant */}
             <button
@@ -188,17 +202,23 @@ export function Navbar() {
               transition={{ delay: 0.3 }}
               className="mt-auto"
             >
-              <a
-                href="#precos"
-                className="flex items-center justify-center w-full min-h-[56px] text-lg font-semibold rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 bg-white text-black active:scale-[0.98] transition-transform"
-                onClick={() => setMenuOpen(false)}
-              >
-                Começar agora
-              </a>
+              {!isDashboard && (
+                <button
+                  onClick={() => {
+                    setMenuOpen(false)
+                    setLoginModalOpen(true)
+                  }}
+                  className="flex items-center justify-center w-full min-h-[56px] text-lg font-semibold rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 bg-white text-black active:scale-[0.98] transition-transform"
+                >
+                  Entrar na conta
+                </button>
+              )}
             </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
+
+      <LoginModal isOpen={loginModalOpen} onClose={() => setLoginModalOpen(false)} />
     </>
   )
 }
