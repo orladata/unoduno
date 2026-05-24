@@ -3,7 +3,9 @@
 import { useEffect, useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { usePathname } from "next/navigation"
-import { LoginModal } from "./login-modal"
+import dynamic from "next/dynamic"
+
+const LoginModal = dynamic(() => import("./login-modal").then(mod => mod.LoginModal), { ssr: false })
 
 const navLinks = [
   { label: "Funcionalidades", href: "#funcionalidades" },

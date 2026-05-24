@@ -15,17 +15,18 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
   const [password, setPassword] = useState("")
   const [isLoading, setIsLoading] = useState(false)
 
-  // Block scroll when open
+  // Block scroll when open and prefetch dashboard
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = "hidden"
+      router.prefetch("/dashboard") // Speed up navigation
     } else {
       document.body.style.overflow = "unset"
     }
     return () => {
       document.body.style.overflow = "unset"
     }
-  }, [isOpen])
+  }, [isOpen, router])
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()

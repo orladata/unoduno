@@ -1,6 +1,7 @@
 "use client"
 
 import { motion } from "framer-motion"
+import Image from "next/image"
 
 const MOCK_HISTORY = [
   {
@@ -60,11 +61,12 @@ export function DashboardCards() {
             {/* Content */}
             <div className="relative h-full bg-[#111]/40 backdrop-blur-md rounded-[23px] p-5 flex flex-col z-10 border border-white/5 group-hover:border-blue-500/20 transition-colors">
               <div className="relative w-full aspect-video rounded-xl overflow-hidden mb-4 border border-white/10">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
+                <Image
                   src={item.thumbnail}
                   alt={item.title}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
+                  fill
+                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                  className="object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
                 />
                 <div className="absolute top-2 right-2 bg-black/60 backdrop-blur-md px-2 py-1 rounded-md text-[10px] font-bold text-white border border-white/10">
                   SCORE {item.score}

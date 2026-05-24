@@ -4,7 +4,9 @@ import { useState, useEffect, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import { youtubeUrlSchema, buildAnalysisUrl } from "@/lib/validations"
 import { motion, AnimatePresence } from "framer-motion"
-import { ViralVideosModal } from "./viral-videos-modal"
+import dynamic from "next/dynamic"
+
+const ViralVideosModal = dynamic(() => import("./viral-videos-modal").then(mod => mod.ViralVideosModal), { ssr: false })
 
 // Strict type definitions
 interface FormState {

@@ -16,10 +16,9 @@ Error: expect(locator).toBeVisible() failed
 
 Locator: getByText(/analisando|processando|extraindo/i)
 Expected: visible
-Error: strict mode violation: getByText(/analisando|processando|extraindo/i) resolved to 3 elements:
-    1) <h2 class="text-base font-bold text-white tracking-tight">Analisando vídeo...</h2> aka getByRole('heading', { name: 'Analisando vídeo...' })
-    2) <span class="text-xs font-medium">Extraindo transcrição do vídeo</span> aka getByText('Extraindo transcrição do vídeo')
-    3) <span class="text-xs font-medium">Analisando padrões virais</span> aka getByText('Analisando padrões virais')
+Error: strict mode violation: getByText(/analisando|processando|extraindo/i) resolved to 2 elements:
+    1) <span class="text-xs font-medium">Extraindo transcrição do vídeo</span> aka getByText('Extraindo transcrição do vídeo')
+    2) <span class="text-xs font-medium">Analisando padrões virais</span> aka getByText('Analisando padrões virais')
 
 Call log:
   - Expect "toBeVisible" with timeout 10000ms

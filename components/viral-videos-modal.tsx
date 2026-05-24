@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
+import Image from "next/image"
 import { getViralVideos, type ViralVideo } from "@/app/actions/youtube-trends"
 
 interface ViralVideosModalProps {
@@ -108,11 +109,12 @@ export function ViralVideosModal({ isOpen, onClose, onSelect }: ViralVideosModal
                         className="group text-left flex flex-col rounded-2xl overflow-hidden bg-white/5 border border-white/10 hover:border-blue-500/50 hover:bg-white/10 transition-all duration-300 hover:shadow-[0_0_30px_rgba(59,130,246,0.15)] focus:outline-none focus:ring-2 focus:ring-blue-500"
                       >
                         <div className="relative w-full aspect-video overflow-hidden">
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img
+                          <Image
                             src={video.thumbnailUrl}
                             alt={video.title}
-                            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                            fill
+                            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                            className="object-cover transition-transform duration-500 group-hover:scale-105"
                           />
                           <div className="absolute inset-0 bg-black/20 group-hover:bg-transparent transition-colors" />
                           <div className="absolute bottom-2 right-2 bg-black/80 px-2 py-1 rounded text-xs font-medium text-white backdrop-blur-md">
