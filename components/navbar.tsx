@@ -3,10 +3,8 @@
 import { useEffect, useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { usePathname } from "next/navigation"
-import dynamic from "next/dynamic"
+import Link from "next/link"
 import { useProfile } from "@/app/dashboard/profile-context"
-
-const LoginModal = dynamic(() => import("./login-modal").then(mod => mod.LoginModal), { ssr: false })
 
 const navLinks = [
   { label: "Funcionalidades", href: "#funcionalidades" },
@@ -21,7 +19,6 @@ export function Navbar() {
   const [scrolled, setScrolled] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
   const [activeSection, setActiveSection] = useState("")
-  const [loginModalOpen, setLoginModalOpen] = useState(false)
   const [profileOpen, setProfileOpen] = useState(false)
   
   const profile = useProfile()
@@ -176,20 +173,20 @@ export function Navbar() {
                         )}
                       </div>
 
-                      <button className="w-full py-2.5 mt-1 rounded-xl bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white text-sm font-bold shadow-[0_0_15px_rgba(37,99,235,0.3)] transition-all active:scale-95">
+                      <Link href="/#precos" className="flex justify-center items-center w-full py-2.5 mt-1 rounded-xl bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white text-sm font-bold shadow-[0_0_15px_rgba(37,99,235,0.3)] transition-all active:scale-95">
                         Atualizar Plano
-                      </button>
+                      </Link>
                     </motion.div>
                   )}
                 </AnimatePresence>
               </div>
             ) : (
-              <button
-                onClick={() => setLoginModalOpen(true)}
+              <Link
+                href="/login"
                 className="hidden sm:flex items-center justify-center min-h-[44px] min-w-[100px] text-sm font-semibold px-5 rounded-full transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 bg-white/10 border border-white/10 text-white hover:bg-white hover:text-black active:scale-95"
               >
                 Entrar
-              </button>
+              </Link>
             )}
 
             {/* Mobile hamburger — 48x48px min touch target compliant */}
@@ -260,22 +257,19 @@ export function Navbar() {
               className="mt-auto"
             >
               {!isDashboard && (
-                <button
-                  onClick={() => {
-                    setMenuOpen(false)
-                    setLoginModalOpen(true)
-                  }}
+                <Link
+                  href="/login"
+                  onClick={() => setMenuOpen(false)}
                   className="flex items-center justify-center w-full min-h-[56px] text-lg font-semibold rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 bg-white text-black active:scale-[0.98] transition-transform"
                 >
                   Entrar na conta
-                </button>
+                </Link>
               )}
             </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      <LoginModal isOpen={loginModalOpen} onClose={() => setLoginModalOpen(false)} />
     </>
   )
 }
