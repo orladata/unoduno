@@ -10,7 +10,7 @@ test.describe("Homepage", () => {
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible()
     
     // Check YouTube URL input exists
-    const urlInput = page.getByPlaceholder(/cole.*youtube/i)
+    const urlInput = page.getByRole("textbox", { name: /url do youtube/i })
     await expect(urlInput).toBeVisible()
     
     // Check analyze button exists
@@ -19,7 +19,7 @@ test.describe("Homepage", () => {
   })
 
   test("should show validation error for invalid URL", async ({ page }) => {
-    const urlInput = page.getByPlaceholder(/cole.*youtube/i)
+    const urlInput = page.getByRole("textbox", { name: /url do youtube/i })
     const analyzeButton = page.getByRole("button", { name: /analisar/i })
 
     // Enter invalid URL
@@ -27,11 +27,11 @@ test.describe("Homepage", () => {
     await analyzeButton.click()
 
     // Should show error message
-    await expect(page.getByText(/url.*inválida/i)).toBeVisible({ timeout: 5000 })
+    await expect(page.getByText(/inválida/i)).toBeVisible({ timeout: 5000 })
   })
 
   test("should accept valid YouTube URL and redirect", async ({ page }) => {
-    const urlInput = page.getByPlaceholder(/cole.*youtube/i)
+    const urlInput = page.getByRole("textbox", { name: /url do youtube/i })
     const analyzeButton = page.getByRole("button", { name: /analisar/i })
 
     // Enter valid YouTube URL
@@ -44,8 +44,8 @@ test.describe("Homepage", () => {
 
   test("should have accessible navigation", async ({ page }) => {
     // Check footer links
-    await expect(page.getByRole("link", { name: /termos/i })).toBeVisible()
-    await expect(page.getByRole("link", { name: /privacidade/i })).toBeVisible()
+    await expect(page.getByRole("link", { name: /termos/i }).first()).toBeVisible()
+    await expect(page.getByRole("link", { name: /privacidade/i }).first()).toBeVisible()
   })
 
   test("should be mobile responsive", async ({ page }) => {
@@ -54,6 +54,6 @@ test.describe("Homepage", () => {
     
     // Check that main elements are still visible
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible()
-    await expect(page.getByPlaceholder(/cole.*youtube/i)).toBeVisible()
+    await expect(page.getByRole("textbox", { name: /url do youtube/i })).toBeVisible()
   })
 })

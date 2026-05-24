@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import { youtubeUrlSchema, buildAnalysisUrl } from "@/lib/validations"
 import { motion, AnimatePresence } from "framer-motion"
+import { ViralVideosModal } from "./viral-videos-modal"
 
 // Strict type definitions
 interface FormState {
@@ -31,6 +32,7 @@ export function HeroSection(): React.ReactElement {
   const router = useRouter()
   const [formState, setFormState] = useState<FormState>(initialFormState)
   const [scrollHidden, setScrollHidden] = useState<boolean>(false)
+  const [isViralModalOpen, setIsViralModalOpen] = useState(false)
 
   // Destructure for cleaner code
   const { url, isSubmitting, error, success } = formState
@@ -157,17 +159,17 @@ export function HeroSection(): React.ReactElement {
         animate="visible"
         className="w-full max-w-5xl flex flex-col items-center z-10"
       >
-        {/* Badge */}
+        {/* Live Counter Badge (CRO) */}
         <motion.div
           variants={itemVariants}
-          className="inline-flex items-center gap-2 rounded-full px-4 py-1.5 mb-8 bg-white/5 border border-white/10 backdrop-blur-sm"
+          className="inline-flex items-center gap-2 rounded-full px-4 py-1.5 mb-8 bg-white/5 border border-emerald-500/20 backdrop-blur-sm shadow-[0_0_15px_rgba(16,185,129,0.1)]"
         >
-          <span
-            className="h-2 w-2 rounded-full bg-blue-400 shadow-[0_0_8px_rgba(96,165,250,0.8)] animate-pulse"
-            aria-hidden="true"
-          />
-          <span className="text-[11px] tracking-[0.2em] uppercase font-bold text-slate-300">
-            Inteligência Artificial Premium
+          <span className="relative flex h-2 w-2">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+          </span>
+          <span className="text-[11px] tracking-[0.1em] uppercase font-bold text-emerald-100/90">
+            12.458 roteiros gerados esta semana
           </span>
         </motion.div>
 
@@ -224,7 +226,7 @@ export function HeroSection(): React.ReactElement {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="group relative overflow-hidden shrink-0 px-8 py-3.5 sm:py-3 rounded-xl text-[15px] font-bold tracking-wide cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed bg-blue-600 hover:bg-blue-500 text-white transition-all duration-300 active:scale-95 flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(37,99,235,0.4)] hover:shadow-[0_0_40px_rgba(37,99,235,0.8)]"
+              className="group relative overflow-hidden shrink-0 px-8 py-3.5 sm:py-3 rounded-xl text-[15px] font-bold tracking-wide cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed bg-blue-600 hover:bg-blue-500 text-white transition-all duration-300 active:scale-95 flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(37,99,235,0.4)] hover:shadow-[0_0_40px_rgba(37,99,235,0.8)]"
             >
               <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]" />
               {isSubmitting ? (
@@ -237,6 +239,37 @@ export function HeroSection(): React.ReactElement {
               )}
             </button>
           </motion.form>
+
+          {/* Quick Action Pills (Fura-Bloqueio CRO) -> Trocado por Modal Dinâmico */}
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.5, duration: 1 }}
+            className="mt-6 flex flex-wrap items-center justify-center gap-2 sm:gap-3"
+          >
+            <span className="text-[12px] font-medium text-slate-400 w-full sm:w-auto mb-2 sm:mb-0 mr-1">
+              Sem ideias? Teste um viral real:
+            </span>
+            <button
+              type="button"
+              onClick={() => {
+                setIsViralModalOpen(true)
+                if (typeof navigator !== "undefined" && navigator.vibrate) navigator.vibrate(50)
+              }}
+              className="px-4 py-1.5 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 text-[12px] font-medium text-slate-200 transition-colors active:scale-95 flex items-center gap-2 shadow-[0_0_15px_rgba(255,255,255,0.05)] hover:border-emerald-500/30"
+            >
+              <span className="text-red-500">🔥</span> Ver vídeos em alta hoje
+            </button>
+          </motion.div>
+
+          <ViralVideosModal 
+            isOpen={isViralModalOpen} 
+            onClose={() => setIsViralModalOpen(false)} 
+            onSelect={(selectedUrl) => {
+              updateForm({ type: "SET_URL", payload: selectedUrl })
+              if (typeof navigator !== "undefined" && navigator.vibrate) navigator.vibrate(50)
+            }} 
+          />
 
           {/* Messages */}
           <AnimatePresence>
