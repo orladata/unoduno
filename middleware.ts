@@ -33,8 +33,9 @@ export async function middleware(request: NextRequest) {
 
   // 2. Supabase Session management (handles cookie refresh)
   try {
-    const response = await updateSession(request)
-    return response
+    const response = NextResponse.next()
+    const finalResponse = await updateSession(request, response)
+    return finalResponse
   } catch (e) {
     return NextResponse.next()
   }
