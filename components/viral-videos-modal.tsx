@@ -13,16 +13,23 @@ interface ViralVideosModalProps {
 export function ViralVideosModal({ isOpen, onClose, onSelect }: ViralVideosModalProps) {
   const [videos, setVideos] = useState<ViralVideo[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     if (isOpen) {
       setLoading(true)
+      setError(null)
+      setVideos([])
+      
       getViralVideos()
         .then((data) => {
+          console.log("[v0] Vídeos virais carregados:", data)
           setVideos(data)
           setLoading(false)
         })
-        .catch(() => {
+        .catch((err) => {
+          console.error("[v0] Erro ao buscar vídeos virais:", err)
+          setError("Erro ao carregar vídeos. Tente novamente.")
           setLoading(false)
         })
     }
@@ -92,6 +99,25 @@ export function ViralVideosModal({ isOpen, onClose, onSelect }: ViralVideosModal
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                     </svg>
                     <p>Buscando os virais do dia...</p>
+                  </div>
+                ) : error ? (
+                  <div className="flex flex-col items-center justify-center py-20">
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-red-400 mb-4">
+                      <circle cx="12" cy="12" r="10" />
+                      <line x1="12" y1="8" x2="12" y2="12" />
+                      <line x1="12" y1="16" x2="12.01" y2="16" />
+                    </svg>
+                    <p className="text-red-400 font-medium">{error}</p>
+                    <p className="text-slate-400 text-sm mt-2">Verifique se a API do YouTube está configurada.</p>
+                  </div>
+                ) : videos.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-20">
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-slate-400 mb-4">
+                      <circle cx="12" cy="12" r="10" />
+                      <path d="M9 12h6M12 9v6" />
+                    </svg>
+                    <p className="text-slate-400 font-medium">Nenhum vídeo encontrado</p>
+                    <p className="text-slate-500 text-sm mt-2">Tente novamente mais tarde.</p>
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
