@@ -47,6 +47,16 @@ const nextConfig = {
             key: "X-DNS-Prefetch-Control",
             value: "on",
           },
+          // XSS Protection
+          {
+            key: "X-XSS-Protection",
+            value: "1; mode=block",
+          },
+          // Global Strict Content Security Policy
+          {
+            key: "Content-Security-Policy",
+            value: "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' https://va.vercel-scripts.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://images.unsplash.com https://i.ytimg.com https://img.youtube.com; font-src 'self' data:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://vitals.vercel-insights.com; frame-src 'self' https://www.youtube.com; object-src 'none'; base-uri 'self'; form-action 'self';",
+          },
         ],
       },
       {

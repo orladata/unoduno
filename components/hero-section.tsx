@@ -151,8 +151,8 @@ export function HeroSection(): React.ReactElement {
         <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:40px_40px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)]" />
         
         {/* Aurora Glowing Orbs */}
-        <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] rounded-full bg-violet-600/30 blur-[120px] mix-blend-screen" />
-        <div className="absolute top-[-10%] right-[-10%] w-[40%] h-[40%] rounded-full bg-blue-600/20 blur-[100px] mix-blend-screen" />
+        <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] rounded-full bg-violet-600/30 blur-[120px] mix-blend-screen gpu-blur will-change-transform" />
+        <div className="absolute top-[-10%] right-[-10%] w-[40%] h-[40%] rounded-full bg-blue-600/20 blur-[100px] mix-blend-screen gpu-blur will-change-transform" />
       </div>
 
       <motion.div
@@ -178,11 +178,11 @@ export function HeroSection(): React.ReactElement {
         {/* H1 Typography Overhaul */}
         <motion.h1
           variants={itemVariants}
-          className="text-5xl md:text-7xl lg:text-[6rem] font-black leading-[1.05] tracking-tighter mb-6 text-balance text-transparent bg-clip-text bg-gradient-to-b from-white to-white/60"
+          className="text-5xl md:text-7xl lg:text-[6rem] font-black leading-[1.05] tracking-tighter mb-6 text-balance text-transparent bg-clip-text bg-gradient-to-b from-white to-white/60 animate-in fade-in zoom-in duration-1000"
         >
           Onde o viral
           <br />
-          <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-violet-400">se torna seu.</span>
+          <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-indigo-400 to-violet-400 animate-pulse">se torna seu.</span>
         </motion.h1>
 
         {/* Subtext */}
@@ -228,16 +228,24 @@ export function HeroSection(): React.ReactElement {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="group relative overflow-hidden shrink-0 px-8 py-3.5 sm:py-3 rounded-xl text-[15px] font-bold tracking-wide cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed bg-blue-600 hover:bg-blue-500 text-white transition-all duration-300 active:scale-95 flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(37,99,235,0.4)] hover:shadow-[0_0_40px_rgba(37,99,235,0.8)]"
+              onMouseMove={(e) => {
+                const rect = e.currentTarget.getBoundingClientRect();
+                const x = ((e.clientX - rect.left) / rect.width) * 100;
+                const y = ((e.clientY - rect.top) / rect.height) * 100;
+                e.currentTarget.style.setProperty('--mouse-x', `${x}%`);
+                e.currentTarget.style.setProperty('--mouse-y', `${y}%`);
+              }}
+              className="group glare-wrapper relative overflow-hidden shrink-0 px-8 py-3.5 sm:py-3 rounded-xl text-[15px] font-bold tracking-wide cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed bg-blue-600 hover:bg-blue-500 text-white transition-all duration-300 active:scale-95 flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(37,99,235,0.4)] hover:shadow-[0_0_40px_rgba(37,99,235,0.8)]"
             >
+              <div className="glare-effect z-10" />
               <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]" />
               {isSubmitting ? (
-                <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24" fill="none"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+                <svg className="animate-spin h-5 w-5 relative z-20" viewBox="0 0 24 24" fill="none"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
               ) : (
-                <>
+                <div className="flex items-center gap-2 relative z-20">
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polygon points="5 3 19 12 5 21 5 3"/></svg>
                   <span>Analisar</span>
-                </>
+                </div>
               )}
             </button>
           </motion.form>

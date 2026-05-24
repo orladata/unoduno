@@ -6,10 +6,10 @@
 :root {
   /* Pure Dark — Unoduno Design System */
   --background: #000000;
-  --foreground: #ffffff;
+  --foreground: #ededed;
   --card: rgba(255,255,255,0.04);
   --card-foreground: #ffffff;
-  --popover: #0a0a0a;
+  --popover: #000000;
   --popover-foreground: #ffffff;
   --primary: #ffffff;
   --primary-foreground: #000000;
@@ -38,7 +38,7 @@
   --glow-white: rgba(255,255,255,0.15);
 
   /* Sidebar */
-  --sidebar: #0a0a0a;
+  --sidebar: #000000;
   --sidebar-foreground: #ffffff;
   --sidebar-primary: #ffffff;
   --sidebar-primary-foreground: #000000;
@@ -98,7 +98,6 @@
   }
   body {
     @apply bg-background text-foreground;
-    background: #000000;
   }
   ::selection {
     background: rgba(255, 255, 255, 0.15);
@@ -122,8 +121,7 @@
 
   /* Consistent focus ring */
   :focus-visible {
-    outline: 2px solid rgba(255, 255, 255, 0.4);
-    outline-offset: 2px;
+    @apply outline-none ring-2 ring-white/40 ring-offset-2 ring-offset-background;
   }
 }
 
@@ -173,4 +171,24 @@ input:-webkit-autofill:focus {
   html {
     scroll-behavior: auto;
   }
+}
+
+/* Glare & Magnetic Effects */
+.glare-wrapper {
+  position: relative;
+  overflow: hidden;
+}
+.glare-effect {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  background: radial-gradient(circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(255,255,255,0.15) 0%, transparent 60%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+.glare-wrapper:hover .glare-effect {
+  opacity: 1;
 }

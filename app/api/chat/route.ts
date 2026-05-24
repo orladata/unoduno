@@ -5,8 +5,20 @@ import { put } from '@vercel/blob'
 import { kv } from '@vercel/kv'
 import { createClient as createSupabaseClient } from '@supabase/supabase-js'
 import { createClient as createServerClient } from '@/utils/supabase/server'
+import { z } from "zod"
+
 export const maxDuration = 120
 export const dynamic = "force-dynamic"
+
+// Strict Input Validation Schema (Anti-Injection & Payload Limiting)
+const ChatPayloadSchema = z.object({
+  messages: z.array(
+    z.object({
+      role: z.enum(["user", "assistant", "system", "data"]),
+      content: z.string().min(1).max(5000, "Mensagem muito longa"),
+    })
+  ).min(1, "Nenhuma mensagem fornecida").max(50, "Muitas mensagens no histórico")
+}).strict() // Rejeita propriedades extras no JSON (Anti-Pollution)
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -116,24 +128,19 @@ export async function POST(req: Request) {
   let currentVideoId: string | null = null;
 
   try {
-    const body = await req.json()
-    const messages = body.messages || []
-
-    if (!Array.isArray(messages) || messages.length === 0) {
+    const rawBody = await req.json()
+    
+    // Strict Zod Validation
+    const validationResult = ChatPayloadSchema.safeParse(rawBody)
+    if (!validationResult.success) {
       return Response.json(
-        { error: "Nenhuma mensagem fornecida.", code: "EMPTY_MESSAGES" },
+        { error: "Payload inválido ou malformado.", code: "INVALID_PAYLOAD", details: validationResult.error.issues },
         { status: 400, headers: { "Content-Type": "application/json" } }
       )
     }
-
+    
+    const messages = validationResult.data.messages
     const lastUserMessage = messages[messages.length - 1]
-
-    if (!lastUserMessage?.content || typeof lastUserMessage.content !== "string") {
-      return Response.json(
-        { error: "Formato de mensagem inválido.", code: "INVALID_MESSAGE_FORMAT" },
-        { status: 400, headers: { "Content-Type": "application/json" } }
-      )
-    }
 
     const messageText = lastUserMessage.content.trim()
     const youtubeUrl = extractYoutubeUrl(messageText)
@@ -169,6 +176,24 @@ export async function POST(req: Request) {
       )
     }
     const userId = user.id
+    const userEmail = user.email
+    const isDeveloper = userEmail === 'sonarycorporation@gmail.com'
+
+    // ── SEC-OP: Strict API Rate Limiting (5 requests per minute per user) ──
+    if (!isDeveloper) {
+      const rateLimitKey = `ratelimit:api:chat:${userId}`
+      const requestsCount = await kv.incr(rateLimitKey)
+      if (requestsCount === 1) {
+        await kv.expire(rateLimitKey, 60) // 60 seconds window
+      }
+      if (requestsCount > 5) {
+        console.warn(`[SEC-OP] Rate limit exceeded for user ${userId}`)
+        return Response.json(
+          { error: 'Muitas requisições. Aguarde um minuto antes de tentar novamente.', code: 'RATE_LIMIT_EXCEEDED' },
+          { status: 429 }
+        )
+      }
+    }
 
     // ── PHASE 0: KV Cache & Idempotency ──────────────────────────────────────
     const kvData = await kv.get<{ status: string; script_blob_url?: string }>(`video:${videoId}`)
@@ -241,7 +266,7 @@ export async function POST(req: Request) {
     
     const isPremium = profile?.subscription_tier === 'pro' || profile?.subscription_tier === 'agency'
 
-    if (!isPremium) {
+    if (!isDeveloper && !isPremium) {
       const usageKey = `usage:${userId}`
       const usageCount = await kv.get<number>(usageKey) || 0
       

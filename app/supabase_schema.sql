@@ -14,10 +14,11 @@ CREATE TABLE IF NOT EXISTS public.profiles (
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 
 -- Create policies for profiles
-DROP POLICY IF EXISTS "Allow public read access to profiles" ON public.profiles;
-CREATE POLICY "Allow public read access to profiles" 
+DROP POLICY IF EXISTS "Users can view their own profiles" ON public.profiles;
+CREATE POLICY "Users can view their own profiles" 
 ON public.profiles FOR SELECT 
-USING (true);
+TO authenticated
+USING (auth.uid() = id);
 
 DROP POLICY IF EXISTS "Allow users to update their own profiles" ON public.profiles;
 CREATE POLICY "Allow users to update their own profiles" 
