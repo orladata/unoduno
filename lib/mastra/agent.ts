@@ -3,6 +3,7 @@ import { fetchTranscriptTool, fetchVideoMetadataTool } from './tools/youtube';
 import { searchWebForTrendsTool } from './tools/research';
 
 export const unodunoAgent = new Agent({
+  id: 'unoduno-agent',
   name: 'Unoduno Expert Neural',
   instructions: `Você é um estrategista de conteúdo sênior e copywriter focado no mercado brasileiro. 
 Seu objetivo é extrair o "ouro" (ganchos de alta retenção e mecânicas virais) de vídeos gringos do YouTube e reescrevê-los para o público do Brasil.
@@ -17,10 +18,7 @@ Ao entregar o roteiro final:
 - Crie 3 variações de gancho (hook) hiper-cativantes nos 5 primeiros segundos.
 - Use tom de voz natural, humano e focado em alta retenção.
 - Formate sua resposta com markdown legível.`,
-  model: {
-    provider: 'GOOGLE', // Assuming @ai-sdk/google
-    name: 'gemini-2.5-pro', // Or whichever model you have configured
-  },
+  model: 'google/gemini-2.5-pro',
   tools: {
     fetchTranscriptTool,
     fetchVideoMetadataTool,
