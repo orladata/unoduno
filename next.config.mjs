@@ -1,14 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   // ============================================================================
-  // PERFORMANCE CONFIGURATION (NEW)
-  // ============================================================================
-  
-  // Enable React Compiler for automatic memoization
-  // Reduces unnecessary re-renders by ~15-20%, especially with Framer Motion
-  reactCompiler: true,
-  
-  // ============================================================================
   // SECURITY CONFIGURATION
   // ============================================================================
   
@@ -151,13 +143,6 @@ const nextConfig = {
   
   // Compress static assets
   compress: true,
-  
-  // Optimize bundle size
-  swcMinify: true,
-  
-  // Enable SWR (Stale-While-Revalidate) for data fetching
-  // Works with ISR and On-Demand Revalidation
-  revalidate: 60,
 }
 
 export default nextConfig
