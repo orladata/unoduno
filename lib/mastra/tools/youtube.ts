@@ -8,10 +8,10 @@ export const fetchTranscriptTool = createTool({
   inputSchema: z.object({
     url: z.string().url().describe('A URL completa do vídeo do YouTube a ser analisado.'),
   }),
-  execute: async ({ context }) => {
+  execute: async ({ url }: { url: string }) => {
     try {
-      console.log(`[fetchTranscriptTool] Buscando transcrição para: ${context.url}`);
-      const transcript = await YoutubeTranscript.fetchTranscript(context.url);
+      console.log(`[fetchTranscriptTool] Buscando transcrição para: ${url}`);
+      const transcript = await YoutubeTranscript.fetchTranscript(url);
       const text = transcript.map(t => t.text).join(' ');
       
       return { 
@@ -35,11 +35,11 @@ export const fetchVideoMetadataTool = createTool({
   inputSchema: z.object({
     url: z.string().url().describe('A URL completa do vídeo do YouTube.'),
   }),
-  execute: async ({ context }) => {
+  execute: async ({ url }: { url: string }) => {
     try {
-      console.log(`[fetchVideoMetadataTool] Buscando metadados para: ${context.url}`);
+      console.log(`[fetchVideoMetadataTool] Buscando metadados para: ${url}`);
       // oEmbed is a public endpoint that doesn't require API keys
-      const oembedUrl = `https://www.youtube.com/oembed?url=${encodeURIComponent(context.url)}&format=json`;
+      const oembedUrl = `https://www.youtube.com/oembed?url=${encodeURIComponent(url)}&format=json`;
       const response = await fetch(oembedUrl);
       
       if (!response.ok) {
