@@ -104,13 +104,24 @@ export const transcribeAudioTool = createTool({
       try {
         console.log(`[TranscribeTool] Enviando requisição para microsserviço customizado em: ${CUSTOM_WHISPER_URL}`);
         
+        let finalAudioUrl = audioUrl;
+        // Pula o proxy da Vercel completamente se for YouTube
+        if (audioUrl.includes('api/audio-proxy?videoId=')) {
+          const videoId = audioUrl.split('videoId=')[1].split('&')[0];
+          finalAudioUrl = `https://www.youtube.com/watch?v=${videoId}`;
+          console.log(`[TranscribeTool] Proxy detectado. Convertendo para URL direta: ${finalAudioUrl}`);
+        } else if (audioUrl.length === 11 && !audioUrl.includes('http')) {
+          // Se o usuário passou só o ID
+          finalAudioUrl = `https://www.youtube.com/watch?v=${audioUrl}`;
+        }
+
         const response = await fetch(CUSTOM_WHISPER_URL, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
-            audio_url: audioUrl,
+            audio_url: finalAudioUrl,
             language: language || null,
             compute_type: 'float16', // Configuração típica do faster-whisper para velocidade máxima em GPU
           })
