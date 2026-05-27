@@ -52,7 +52,7 @@ export async function POST(req: Request) {
     // Extrair JSON da resposta do Agente
     let translatedSegments = [];
     try {
-      const jsonMatch = translationText.match(/\[.*\]/s);
+      const jsonMatch = translationText.match(/\[[\s\S]*\]/);
       const jsonStr = jsonMatch ? jsonMatch[0] : translationText;
       translatedSegments = JSON.parse(jsonStr);
     } catch (parseErr) {
