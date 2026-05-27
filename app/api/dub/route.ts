@@ -38,7 +38,7 @@ export async function POST(req: Request) {
 
     // 2. Usar o Agente de Dublagem do Mastra para traduzir o Lip-Sync
     console.log('[DubRoute] 2. Traduzindo segmentos usando o Agente de Dublagem (Mastra)...');
-    const dubbingAgent = mastra.getAgent('dubbing-agent');
+    const dubbingAgent = mastra.getAgent('dubbingAgent');
     
     const translationPrompt = `
       Traduza o seguinte array de segmentos para o idioma ${language}. 
