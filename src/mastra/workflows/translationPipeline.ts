@@ -66,7 +66,7 @@ export const translationPipeline = new Workflow({
     finalScript: z.string(),
   }),
 })
-  .step(generateHook)
-  .then(translateContent)
+  .then(generateHook as any)
+  .then(translateContent as any)
   .commit();
 
