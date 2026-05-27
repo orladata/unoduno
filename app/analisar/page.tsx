@@ -6,6 +6,7 @@ import Link from "next/link"
 import { youtubeUrlSchema, extractVideoId, sanitizeTextContent } from "@/lib/validations"
 import { useChatAPI } from "@/hooks/use-chat-api"
 import { ViralEngineerAnalysis } from "@/components/viral-engineer-analysis"
+import { TranscriptionViewer } from "@/components/transcription-viewer"
 import { motion } from "framer-motion"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -205,7 +206,6 @@ function ScriptDisplay({ content, videoId, onCopy, onReset, isCopied }: {
   readonly onReset: () => void
   readonly isCopied?: boolean
 }) {
-  // Split content into labelled sections by scanning for keywords
   const sections = parseSections(content)
 
   return (
@@ -273,7 +273,6 @@ interface ParsedSection {
 }
 
 function parseSections(text: string): ParsedSection[] {
-  // Match heading patterns like "## GANCHO", "**GANCHO**", "GANCHO:", etc.
   const headingPattern = /(?:#{1,3}\s*|(?:\*\*))?(GANCHO|INTRODUÇÃO|DESENVOLVIMENTO|CTA|CALL.TO.ACTION|HOOK)(?:\*\*)?(?:\s*[-:])?\s*/gi
 
   const colorMap: Record<string, { accentColor: string; badgeColor: string }> = {
@@ -287,12 +286,11 @@ function parseSections(text: string): ParsedSection[] {
 
   const parts: ParsedSection[] = []
   let lastIndex = 0
-  let match: RegExpExecArray | null
 
-  // Reset regex
   headingPattern.lastIndex = 0
 
   const matches: Array<{ index: number; title: string; end: number }> = []
+  let match: RegExpExecArray | null
   while ((match = headingPattern.exec(text)) !== null) {
     const rawTitle = match[1].trim().toUpperCase().replace(/[-\s]/g, "-")
     matches.push({ index: match.index, title: rawTitle, end: match.index + match[0].length })
@@ -320,7 +318,6 @@ function parseSections(text: string): ParsedSection[] {
 }
 
 function ScriptSectionCard({ section, index }: { readonly section: ParsedSection; readonly index: number }) {
-  // Render [CENA], [ÁUDIO], [TEXTO] markers with styling
   const lines = section.content.split("\n").filter(Boolean)
 
   return (
@@ -329,7 +326,6 @@ function ScriptSectionCard({ section, index }: { readonly section: ParsedSection
       style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)" }}
       aria-label={`Seção: ${section.title}`}
     >
-      {/* Header */}
       <div
         className="flex items-center gap-3 px-5 py-4"
         style={{ borderBottom: "1px solid rgba(255,255,255,0.06)", background: section.badgeColor }}
@@ -345,7 +341,6 @@ function ScriptSectionCard({ section, index }: { readonly section: ParsedSection
         </span>
       </div>
 
-      {/* Content */}
       <div className="px-5 py-5 flex flex-col gap-3">
         {lines.map((line, li) => (
           <ScriptLine key={li} line={line} accentColor={section.accentColor} />
@@ -356,7 +351,6 @@ function ScriptSectionCard({ section, index }: { readonly section: ParsedSection
 }
 
 function ScriptLine({ line, accentColor }: { readonly line: string; readonly accentColor: string }) {
-  // Detect marker type: [CENA], [ÁUDIO], [TEXTO]
   const markerMatch = line.match(/^\[(CENA|ÁUDIO|AUDIO|TEXTO|LEGENDA)\]/i)
 
   if (markerMatch) {
@@ -377,7 +371,6 @@ function ScriptLine({ line, accentColor }: { readonly line: string; readonly acc
     )
   }
 
-  // Detect timestamps like (0:00-0:03)
   const timeMatch = line.match(/^\([\d:]+[-–][\d:]+\)/)
   if (timeMatch) {
     const rest = sanitizeTextContent(line.slice(timeMatch[0].length).trim())
@@ -391,7 +384,6 @@ function ScriptLine({ line, accentColor }: { readonly line: string; readonly acc
     )
   }
 
-  // Regular line
   return (
     <p className="text-sm leading-relaxed text-white">
       {sanitizeTextContent(line)}
@@ -400,7 +392,6 @@ function ScriptLine({ line, accentColor }: { readonly line: string; readonly acc
 }
 
 function RawScriptCard({ content }: { readonly content: string }) {
-  // Fallback: render raw text safely line by line — never dangerouslySetInnerHTML
   const lines = sanitizeTextContent(content).split("\n").filter(Boolean)
 
   return (
@@ -417,7 +408,7 @@ function RawScriptCard({ content }: { readonly content: string }) {
   )
 }
 
-// ─── Error State ───────────────────────────────────────────────────────���──────
+// ─── Error State ──────────────────────────────────────────────────────────────
 
 function ErrorState({ message, onRetry }: { readonly message: string; readonly onRetry: () => void }) {
   return (
@@ -451,17 +442,14 @@ function ErrorState({ message, onRetry }: { readonly message: string; readonly o
   )
 }
 
-// Helper to extract and parse JSON safely from text that might contain markdown blocks or wrapper text
 function safeJSONParse(text: string) {
   if (!text) return null
   let cleanText = text.trim()
 
-  // Remove markdown JSON code blocks if present
   if (cleanText.startsWith("```")) {
     cleanText = cleanText.replace(/^```(?:json)?\n?/, "").replace(/```$/, "").trim()
   }
 
-  // Find first { and last } to isolate the JSON object
   const firstBrace = cleanText.indexOf("{")
   const lastBrace = cleanText.lastIndexOf("}")
   if (firstBrace !== -1 && lastBrace !== -1) {
@@ -471,22 +459,33 @@ function safeJSONParse(text: string) {
   return JSON.parse(cleanText)
 }
 
+// ─── Section divider ──────────────────────────────────────────────────────────
+
+function SectionDivider({ label }: { label: string }) {
+  return (
+    <div className="flex items-center gap-4 py-2">
+      <div className="flex-1 h-px" style={{ background: "rgba(255,255,255,0.07)" }} />
+      <span className="text-[11px] font-semibold tracking-widest uppercase" style={{ color: "rgba(255,255,255,0.25)" }}>
+        {label}
+      </span>
+      <div className="flex-1 h-px" style={{ background: "rgba(255,255,255,0.07)" }} />
+    </div>
+  )
+}
+
 // ─── Main Inner Component ────────────────────────────────────────────────────
 
 function AnalisarInner() {
   const searchParams = useSearchParams()
   const router = useRouter()
 
-  // 1. Validate URL from query params using the shared Zod schema
   const rawUrl = searchParams.get("url") ?? ""
   const urlValidation = youtubeUrlSchema.safeParse(rawUrl)
   const validatedUrl = urlValidation.success ? urlValidation.data : null
   const videoId = validatedUrl ? extractVideoId(validatedUrl) : null
 
-  // 2. useChat — Custom hook for API communication
   const { messages, sendMessage, status, error } = useChatAPI()
 
-  // 3. Trigger analysis once on mount if URL is valid
   const hasStarted = useRef(false)
   const startAnalysis = useCallback(() => {
     if (!validatedUrl || hasStarted.current) return
@@ -498,19 +497,16 @@ function AnalisarInner() {
     startAnalysis()
   }, [startAnalysis])
 
-  // 4. Derive phase from status and messages
   const lastMessage = messages.filter((m) => m.role === "assistant").pop()
   const assistantText = lastMessage?.content ?? ""
   
-  // Parse JSON analysis from assistant text
   let analysisData = null
   try {
     if (assistantText && assistantText.trim().length > 0) {
       analysisData = safeJSONParse(assistantText)
     }
-  } catch (parseError) {
-    // JSON parsing will fail while streaming - that's expected
-    console.log("[v0:analysis] Still streaming or invalid JSON")
+  } catch {
+    // Still streaming or invalid JSON — expected
   }
   
   const isLoading = status === "streaming" || status === "submitted"
@@ -522,7 +518,6 @@ function AnalisarInner() {
 
   const [isCopied, setIsCopied] = useState(false)
 
-  // 6. Handlers
   const handleCopy = useCallback(async () => {
     if (!assistantText) return
     try {
@@ -540,11 +535,9 @@ function AnalisarInner() {
 
   const handleRetry = useCallback(() => {
     hasStarted.current = false
-    // Re-trigger analysis by refreshing the page with same URL
     window.location.reload()
   }, [])
 
-  // 7. Invalid URL guard
   if (!validatedUrl) {
     return (
       <div className="flex flex-col items-center justify-center gap-6 py-24 text-center" role="alert">
@@ -564,7 +557,8 @@ function AnalisarInner() {
   }
 
   return (
-    <>
+    <div className="flex flex-col gap-6">
+      {/* ── AI Analysis section ── */}
       {phase === "error" && (
         <ErrorState
           message={error?.message ?? "Erro desconhecido ao processar o vídeo."}
@@ -576,6 +570,26 @@ function AnalisarInner() {
         <StreamingIndicator status={isLoading ? "streaming" : "idle"} />
       )}
 
+      {phase === "streaming" && assistantText && (
+        <div
+          className="rounded-2xl px-5 py-5"
+          style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)" }}
+          aria-live="polite"
+          aria-label="Pré-visualização do roteiro sendo gerado"
+        >
+          <p className="text-xs font-medium mb-3" style={{ color: "var(--text-subtle)" }}>
+            PRÉ-VISUALIZAÇÃO
+          </p>
+          <div className="flex flex-col gap-2">
+            {sanitizeTextContent(assistantText).split("\n").filter(Boolean).slice(-6).map((line, i) => (
+              <p key={i} className="text-sm leading-relaxed" style={{ color: "rgba(255,255,255,0.6)" }}>
+                {line}
+              </p>
+            ))}
+          </div>
+        </div>
+      )}
+
       {phase === "complete" && analysisData && (
         <ViralEngineerAnalysis
           analysis={analysisData}
@@ -583,29 +597,23 @@ function AnalisarInner() {
         />
       )}
 
-      {/* Live streaming preview while generating */}
-      {phase === "streaming" && assistantText && (
-        <div className="mt-8">
+      {/* ── Transcription section (independent — starts immediately) ── */}
+      {(phase === "complete" || phase === "streaming" || phase === "idle") && validatedUrl && (
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2, duration: 0.4 }}
+        >
+          <SectionDivider label="Transcrição do vídeo" />
           <div
-            className="rounded-2xl px-5 py-5"
-            style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)" }}
-            aria-live="polite"
-            aria-label="Pré-visualização do roteiro sendo gerado"
+            className="mt-4 rounded-2xl px-5 py-6"
+            style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.07)" }}
           >
-            <p className="text-xs font-medium mb-3" style={{ color: "var(--text-subtle)" }}>
-              PRÉ-VISUALIZAÇÃO
-            </p>
-            <div className="flex flex-col gap-2">
-              {sanitizeTextContent(assistantText).split("\n").filter(Boolean).slice(-6).map((line, i) => (
-                <p key={i} className="text-sm leading-relaxed" style={{ color: "rgba(255,255,255,0.6)" }}>
-                  {line}
-                </p>
-              ))}
-            </div>
+            <TranscriptionViewer videoUrl={validatedUrl} />
           </div>
-        </div>
+        </motion.div>
       )}
-    </>
+    </div>
   )
 }
 
