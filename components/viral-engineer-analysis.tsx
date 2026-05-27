@@ -133,12 +133,81 @@ export function ViralEngineerAnalysis({
   analysis?: LearningLayerAnalysis; 
   isLoading: boolean 
 }) {
-  const [activeTab, setActiveTab] = useState<"origin" | "essence" | "audience" | "blueprint">("origin")
+  const [activeTab, setActiveTab] = useState<"origin" | "essence" | "audience" | "blueprint" | "dubbing">("origin")
   const [exported, setExported] = useState(false)
   const [isPlayingVideo, setIsPlayingVideo] = useState(false)
 
+  // Dubbing State
+  const [dubLang, setDubLang] = useState("pt")
+  const [isDubLoading, setIsDubLoading] = useState(false)
+  const [dubProgressMsg, setDubProgressMsg] = useState("")
+
   const printRef = useRef<HTMLDivElement>(null)
   const handlePrint = useReactToPrint({ contentRef: printRef })
+
+  // Handle Dubbing
+  const handleDub = async () => {
+    if (!analysis?.originalVideoDetails?.youtubeVideoId) return
+    setIsDubLoading(true)
+    
+    try {
+      const response = await fetch("/api/dub", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+          videoUrl: `https://youtube.com/watch?v=${analysis.originalVideoDetails.youtubeVideoId}`, 
+          language: dubLang 
+        }),
+      })
+      
+      if (!response.ok) {
+        const err = await response.json()
+        throw new Error(err.error || "Erro ao gerar dublagem")
+      }
+      
+      const blob = await response.blob()
+      const downloadUrl = window.URL.createObjectURL(blob)
+      
+      const a = document.createElement("a")
+      a.href = downloadUrl
+      a.download = `video_dublado_${dubLang}.mp4`
+      document.body.appendChild(a)
+      a.click()
+      window.URL.revokeObjectURL(downloadUrl)
+      document.body.removeChild(a)
+      
+    } catch (error: any) {
+      alert("Falha na dublagem: " + error.message)
+    } finally {
+      setIsDubLoading(false)
+      setDubProgressMsg("")
+    }
+  }
+
+  // Dubbing simulated progress
+  useEffect(() => {
+    if (!isDubLoading) return
+    const messages = [
+      "Iniciando servidores na Modal...",
+      "Extraindo áudio original do YouTube...",
+      "Transcrevendo via Faster-Whisper...",
+      "Traduzindo legendas com Gemini 1.5...",
+      "Clonando voz do locutor original (XTTS)...",
+      "Gerando vozes sintéticas...",
+      "Remixando vozes no vídeo original...",
+      "Finalizando arquivo MP4..."
+    ]
+    let i = 0
+    setDubProgressMsg(messages[0])
+    const interval = setInterval(() => {
+      i++
+      if (i < messages.length) {
+        setDubProgressMsg(messages[i])
+      }
+    }, 15000)
+    
+    return () => clearInterval(interval)
+  }, [isDubLoading])
 
   if (isLoading) {
     return <AnalysisSkeleton />
@@ -178,6 +247,7 @@ export function ViralEngineerAnalysis({
           { id: "essence" as const, label: "🎬 Essência & Transcrição", icon: "🎥" },
           { id: "audience" as const, label: "👥 Reação do Público", icon: "🔥" },
           { id: "blueprint" as const, label: "🚀 Guia de Recriação", icon: "🛠️" },
+          { id: "dubbing" as const, label: "🎙️ Dublagem & Tradução", icon: "🎙️" },
         ].map((tab) => (
           <button
             key={tab.id}
@@ -504,6 +574,64 @@ export function ViralEngineerAnalysis({
                       </div>
                     ))}
                   </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {/* TAB 4: DUBBING */}
+        {activeTab === "dubbing" && (
+          <div className="space-y-6">
+            <Card className="border-cyan-500/20 bg-cyan-500/5 backdrop-blur-xl">
+              <CardHeader className="pb-3 border-b border-white/10">
+                <CardTitle className="text-lg flex items-center gap-2 text-cyan-400">
+                  <span className="text-2xl">🎙️</span>
+                  Dublagem & Tradução Automática
+                </CardTitle>
+                <p className="text-xs text-gray-400">Nossa IA traduz, clona a voz original e gera uma nova dublagem com lip-sync automático.</p>
+              </CardHeader>
+              <CardContent className="space-y-6 pt-6">
+                <div className="flex flex-col gap-4 max-w-md mx-auto">
+                  <div className="flex flex-col gap-2">
+                    <label className="text-xs font-bold text-white/70 uppercase tracking-wide">Idioma de Destino</label>
+                    <select
+                      value={dubLang}
+                      onChange={(e) => setDubLang(e.target.value)}
+                      disabled={isDubLoading}
+                      className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-cyan-500/50 transition-all appearance-none cursor-pointer disabled:opacity-50"
+                    >
+                      <option value="pt" className="bg-black text-white">Português (BR)</option>
+                      <option value="es" className="bg-black text-white">Espanhol (ES)</option>
+                      <option value="en" className="bg-black text-white">Inglês (US)</option>
+                    </select>
+                  </div>
+
+                  <Button
+                    onClick={handleDub}
+                    disabled={isDubLoading}
+                    className="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-6 rounded-xl transition-all shadow-[0_0_15px_rgba(6,182,212,0.4)] hover:shadow-[0_0_25px_rgba(6,182,212,0.6)] flex flex-col items-center justify-center gap-1 h-auto min-h-[52px]"
+                  >
+                    {isDubLoading ? (
+                      <div className="flex flex-col items-center gap-2 py-1">
+                        <div className="flex items-center gap-2">
+                          <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" strokeWidth="4" />
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                          </svg>
+                          <span>Processando Magia...</span>
+                        </div>
+                        <span className="text-[10px] uppercase font-bold opacity-70 animate-pulse">{dubProgressMsg}</span>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2 text-base">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                          <polygon points="5 3 19 12 5 21 5 3"/>
+                        </svg>
+                        Gerar Dublagem (5 Créditos)
+                      </div>
+                    )}
+                  </Button>
                 </div>
               </CardContent>
             </Card>
