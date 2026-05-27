@@ -9,7 +9,7 @@ interface Message {
 
 interface UseChatReturn {
   messages: Message[]
-  sendMessage: (options: { text: string }) => Promise<void>
+  sendMessage: (options: { text: string; directAudioUrl?: string }) => Promise<void>
   status: 'idle' | 'streaming' | 'submitted' | 'error'
   error: { message: string; code?: string } | null
 }
@@ -20,7 +20,7 @@ export function useChatAPI(): UseChatReturn {
   const [error, setError] = useState<{ message: string; code?: string } | null>(null)
 
   const sendMessage = useCallback(
-    async (options: { text: string }) => {
+    async (options: { text: string; directAudioUrl?: string }) => {
       try {
         setError(null)
         setStatus('submitted')
@@ -40,6 +40,7 @@ export function useChatAPI(): UseChatReturn {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               messages: [...messages, userMessage],
+              directAudioUrl: options.directAudioUrl, // Passa a URL direta (Client-Side Proxying)
             }),
             signal: controller.signal,
           })

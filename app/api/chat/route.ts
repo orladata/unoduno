@@ -131,8 +131,12 @@ export async function POST(req: Request) {
   try {
     const rawBody = await req.json()
     
-    // Strict Zod Validation
-    const validationResult = ChatPayloadSchema.safeParse(rawBody)
+    // Strict Zod Validation (Extendendo schema localmente de forma segura)
+    const ExtendedSchema = ChatPayloadSchema.extend({
+      directAudioUrl: z.string().url().optional()
+    });
+
+    const validationResult = ExtendedSchema.safeParse(rawBody)
     if (!validationResult.success) {
       return Response.json(
         { error: "Payload inválido ou malformado.", code: "INVALID_PAYLOAD", details: validationResult.error.issues },
@@ -141,6 +145,7 @@ export async function POST(req: Request) {
     }
     
     const messages = validationResult.data.messages
+    const directAudioUrl = validationResult.data.directAudioUrl
     const lastUserMessage = messages[messages.length - 1]
 
     const messageText = lastUserMessage.content.trim()
@@ -296,11 +301,16 @@ export async function POST(req: Request) {
           ? "https://unoduno.com"
           : process.env.NEXT_PUBLIC_SITE_URL || "https://unoduno.com"
           
-        const proxiedAudioUrl = `${siteUrl}/api/audio-proxy?videoId=${videoId}`
+        const proxiedAudioUrl = directAudioUrl || `${siteUrl}/api/audio-proxy?videoId=${videoId}`
         
         console.log(`[API] Enviando requisição de transcrição para o Modal usando proxy de áudio: ${proxiedAudioUrl}`)
 
-        const whisperRes = await fetch(process.env.CUSTOM_WHISPER_URL, {
+        let transcribeEndpoint = process.env.CUSTOM_WHISPER_URL as string;
+        if (!transcribeEndpoint.endsWith('/transcribe')) {
+          transcribeEndpoint = `${transcribeEndpoint.replace(/\/$/, '')}/transcribe`;
+        }
+
+        const whisperRes = await fetch(transcribeEndpoint, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({

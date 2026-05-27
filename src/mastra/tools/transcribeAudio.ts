@@ -105,55 +105,23 @@ export const transcribeAudioTool = createTool({
         console.log(`[TranscribeTool] Enviando requisição para microsserviço customizado em: ${CUSTOM_WHISPER_URL}`);
         
         let finalAudioUrl = audioUrl;
-        let isYoutube = false;
         
         // Pula o proxy da Vercel completamente se for YouTube
         if (audioUrl.includes('api/audio-proxy?videoId=')) {
           const videoId = audioUrl.split('videoId=')[1].split('&')[0];
           finalAudioUrl = `https://www.youtube.com/watch?v=${videoId}`;
-          isYoutube = true;
           console.log(`[TranscribeTool] Proxy detectado. Convertendo para URL direta: ${finalAudioUrl}`);
         } else if (audioUrl.length === 11 && !audioUrl.includes('http')) {
           // Se o usuário passou só o ID
           finalAudioUrl = `https://www.youtube.com/watch?v=${audioUrl}`;
-          isYoutube = true;
-        } else if (audioUrl.includes('youtube.com') || audioUrl.includes('youtu.be')) {
-          isYoutube = true;
         }
 
-        // Se for YouTube, usamos o Mastra para extrair o MP3 remotamente via API Cobalt/RapidAPI
-        // Assim, a Modal recebe um MP3 limpo e não é bloqueada pelo bot-check do YouTube.
-        if (isYoutube) {
-          console.log(`[TranscribeTool] URL do YouTube detectada. Extraindo link direto do MP3 via Cobalt API...`);
-          try {
-            const cobaltRes = await fetch('https://api.cobalt.tools/api/json', {
-              method: 'POST',
-              headers: {
-                'Accept': 'application/json',
-                'Content-Type': 'application/json'
-              },
-              body: JSON.stringify({
-                url: finalAudioUrl,
-                isAudioOnly: true,
-                aFormat: "mp3"
-              })
-            });
-            
-            if (cobaltRes.ok) {
-              const cobaltData = await cobaltRes.json();
-              if (cobaltData.url) {
-                finalAudioUrl = cobaltData.url;
-                console.log(`[TranscribeTool] MP3 extraído com sucesso! Link direto gerado.`);
-              }
-            } else {
-              console.warn(`[TranscribeTool] Cobalt API falhou. A Modal tentará baixar usando yt-dlp nativo.`);
-            }
-          } catch (e) {
-            console.warn(`[TranscribeTool] Falha ao contatar a API de extração:`, e);
-          }
+        let transcribeEndpoint = CUSTOM_WHISPER_URL as string;
+        if (!transcribeEndpoint.endsWith('/transcribe')) {
+          transcribeEndpoint = `${transcribeEndpoint.replace(/\/$/, '')}/transcribe`;
         }
 
-        const response = await fetch(CUSTOM_WHISPER_URL, {
+        const response = await fetch(transcribeEndpoint, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'

@@ -16,15 +16,49 @@ export default function DashboardPage() {
   const outOfQuota = isAdmin ? false : (profile ? profile.credit_balance < 100 : false)
   const creditsRemaining = isAdmin ? "Ilimitado" : (profile?.credit_balance ? Math.floor(profile.credit_balance / 100) : 0)
 
-  const handleAnalyze = (e: React.FormEvent) => {
+  const extractVideoId = (url: string) => {
+    const match = url.match(/(?:v=|youtu\.be\/|embed\/|v\/|shorts\/|live\/|e\/)([a-zA-Z0-9_-]{11})/);
+    return match ? match[1] : null;
+  };
+
+  const handleAnalyze = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!url) return
     if (outOfQuota) {
       router.push("/#precos")
       return
     }
+    
     setIsLoading(true)
-    router.push(`/dashboard/analisar?url=${encodeURIComponent(url)}`)
+    let directAudioUrl = ""
+    const videoId = extractVideoId(url)
+
+    if (videoId) {
+      try {
+        console.log("Iniciando Client-Side Proxying (Bypass)...");
+        // Busca a stream puramente no front-end usando a API pública do Piped
+        const res = await fetch(`https://pipedapi.kavin.rocks/streams/${videoId}`);
+        if (res.ok) {
+          const data = await res.json();
+          // Pega a melhor stream de áudio disponível
+          if (data.audioStreams && data.audioStreams.length > 0) {
+            // Prioriza m4a ou mp4, que são compatíveis
+            const stream = data.audioStreams.find((s: any) => s.mimeType.includes("mp4") || s.mimeType.includes("webm")) || data.audioStreams[0];
+            directAudioUrl = stream.url;
+            console.log("Sucesso! Proxy Client-Side obteve a URL da stream pura.");
+          }
+        }
+      } catch (err) {
+        console.warn("Client-Side Proxying falhou (Piped API pode estar instável). Redirecionando com URL padrão.", err);
+      }
+    }
+
+    let nextUrl = `/dashboard/analisar?url=${encodeURIComponent(url)}`
+    if (directAudioUrl) {
+      nextUrl += `&directAudioUrl=${encodeURIComponent(directAudioUrl)}`
+    }
+    
+    router.push(nextUrl)
   }
 
   return (

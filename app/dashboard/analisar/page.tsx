@@ -492,6 +492,7 @@ function AnalisarInner() {
 
   // 1. Validate URL from query params using the shared Zod schema
   const rawUrl = searchParams.get("url") ?? ""
+  const directAudioUrl = searchParams.get("directAudioUrl") ?? ""
   const urlValidation = youtubeUrlSchema.safeParse(rawUrl)
   const validatedUrl = urlValidation.success ? urlValidation.data : null
   const videoId = validatedUrl ? extractVideoId(validatedUrl) : null
@@ -504,8 +505,11 @@ function AnalisarInner() {
   const startAnalysis = useCallback(() => {
     if (!validatedUrl || hasStarted.current) return
     hasStarted.current = true
-    sendMessage({ text: `Analise este vídeo do YouTube: ${validatedUrl}` })
-  }, [validatedUrl, sendMessage])
+    sendMessage({ 
+      text: `Analise este vídeo do YouTube: ${validatedUrl}`,
+      directAudioUrl: directAudioUrl || undefined
+    })
+  }, [validatedUrl, directAudioUrl, sendMessage])
 
   useEffect(() => {
     startAnalysis()

@@ -23,6 +23,7 @@ image = (
         "TTS",    # Coqui TTS para geração e clonagem de voz XTTSv2
         "pydub"   # Para manipulação e mesclagem de áudio
     )
+    .add_local_file("cookies.txt", "/root/cookies.txt")
 )
 
 # 2. Criar o App da Modal
@@ -73,16 +74,34 @@ def transcribe(request: TranscribeRequest):
 
         print(f"[~] Fazendo download do áudio de: {url_to_download} ...")
 
+        print(f"[~] Iniciando extração com yt-dlp avançado para a URL: {url_to_download}")
+        
+        # Base commands (Disfarce Apple TV + Cookies)
+        base_extractor_args = "youtube:player_client=ios,tv"
+        
+        # 4. Injeção Dinâmica de Po-Token (Proof of Origin)
+        po_token = os.getenv("YOUTUBE_PO_TOKEN")
+        if po_token:
+            base_extractor_args += f";po_token={po_token}"
+            print("[+] Injetando Po-Token de Validação...")
+
+        command = [
+            "yt-dlp",
+            "-x", "--audio-format", "mp3",
+            "--extractor-args", base_extractor_args,
+            "--cookies", "/root/cookies.txt", 
+            "--js-runtimes", "node",
+        ]
+        
+        # 3. Injeção Dinâmica de Proxy Residencial
+        proxy_url = os.getenv("YOUTUBE_PROXY")
+        if proxy_url:
+            command.extend(["--proxy", proxy_url])
+            print("[+] Roteando tráfego via Proxy Residencial...")
+            
+        command.extend(["-o", full_temp_path, url_to_download])
+        
         if "youtube.com" in url_to_download or "youtu.be" in url_to_download:
-            print("[~] Usando yt-dlp para extração avançada com suporte a cookies...")
-            command = [
-                "yt-dlp",
-                "-x", "--audio-format", "mp3",
-                "--extractor-args", "youtube:player_client=ios,tv", # Bypasses most bot checks by acting as an Apple TV/iOS device
-                "--js-runtimes", "node",
-                "-o", full_temp_path,
-                url_to_download
-            ]
             
             print("[~] Iniciando extração anônima camuflada como dispositivo Apple TV/iOS...")
             process = subprocess.run(command, capture_output=True, text=True)
@@ -172,14 +191,28 @@ def dub_video(request: DubRequest):
         print(f"[~] Baixando vídeo original para Dublagem: {url_to_download}")
         
         if "youtube.com" in url_to_download or "youtu.be" in url_to_download:
+            base_extractor_args = "youtube:player_client=ios,tv"
+            
+            # Po-Token injection
+            po_token = os.getenv("YOUTUBE_PO_TOKEN")
+            if po_token:
+                base_extractor_args += f";po_token={po_token}"
+
             command = [
                 "yt-dlp",
                 "-f", "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best",
-                "--extractor-args", "youtube:player_client=ios,tv",
+                "--extractor-args", base_extractor_args,
+                "--cookies", "/root/cookies.txt",
                 "--js-runtimes", "node",
-                "-o", original_video_path,
-                url_to_download
             ]
+            
+            # Proxy injection
+            proxy_url = os.getenv("YOUTUBE_PROXY")
+            if proxy_url:
+                command.extend(["--proxy", proxy_url])
+                
+            command.extend(["-o", original_video_path, url_to_download])
+            
             subprocess.run(command, capture_output=True, text=True, check=True)
         else:
             print("[~] URL de vídeo genérica detectada. Realizando download via requests...")
@@ -236,7 +269,11 @@ def dub_video(request: DubRequest):
     except Exception as e:
         print(f"[!] Erro na Dublagem: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Erro na Dublagem Automática: {str(e)}")
-@app.function(image=image, gpu="T4", timeout=1200) # Passando a montagem de arquivos via container image
+@app.function(
+    image=image, 
+    gpu="T4", 
+    timeout=1200
+) 
 @modal.asgi_app()
 def fastapi_app():
     return web_app

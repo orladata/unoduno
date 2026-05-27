@@ -12,48 +12,6 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'A URL do vídeo é obrigatória.' }, { status: 400 });
     }
 
-    let finalVideoUrl = videoUrl;
-    let isYoutube = false;
-    
-    if (videoUrl.includes('api/audio-proxy?videoId=')) {
-      const videoId = videoUrl.split('videoId=')[1].split('&')[0];
-      finalVideoUrl = `https://www.youtube.com/watch?v=${videoId}`;
-      isYoutube = true;
-    } else if (videoUrl.length === 11 && !videoUrl.includes('http')) {
-      finalVideoUrl = `https://www.youtube.com/watch?v=${videoUrl}`;
-      isYoutube = true;
-    } else if (videoUrl.includes('youtube.com') || videoUrl.includes('youtu.be')) {
-      isYoutube = true;
-    }
-
-    if (isYoutube) {
-      console.log(`[DubRoute] URL do YouTube detectada. Extraindo link direto do vídeo via Cobalt API...`);
-      try {
-        const cobaltRes = await fetch('https://api.cobalt.tools/api/json', {
-          method: 'POST',
-          headers: {
-            'Accept': 'application/json',
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            url: finalVideoUrl,
-            // false para trazer MP4 (áudio e vídeo) que é necessário para a Dublagem
-            isAudioOnly: false 
-          })
-        });
-        
-        if (cobaltRes.ok) {
-          const cobaltData = await cobaltRes.json();
-          if (cobaltData.url) {
-            finalVideoUrl = cobaltData.url;
-            console.log(`[DubRoute] Vídeo extraído com sucesso! Link direto gerado.`);
-          }
-        }
-      } catch (e) {
-        console.warn(`[DubRoute] Falha ao contatar a API de extração:`, e);
-      }
-    }
-
     const MODAL_API_URL = process.env.CUSTOM_WHISPER_URL || 'http://localhost:8000';
     const TRANSCRIBE_URL = `${MODAL_API_URL}/transcribe`;
     const DUB_URL = `${MODAL_API_URL}/dub`;
@@ -63,7 +21,7 @@ export async function POST(req: Request) {
     const transcribeRes = await fetch(TRANSCRIBE_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ audio_url: finalVideoUrl, language: 'en' })
+      body: JSON.stringify({ audio_url: videoUrl, language: 'en' })
     });
 
     if (!transcribeRes.ok) {
@@ -108,7 +66,7 @@ export async function POST(req: Request) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ 
-        video_url: finalVideoUrl, 
+        video_url: videoUrl, 
         segments: translatedSegments,
         language: language
       })
