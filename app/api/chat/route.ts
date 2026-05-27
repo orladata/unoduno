@@ -312,8 +312,8 @@ export async function POST(req: Request) {
         if (whisperRes.ok) {
           const whisperData = await whisperRes.json()
           if (whisperData.success && whisperData.text) {
-            realTranscript = whisperData.text
-            console.log(`[API] Transcrição dedicada por GPU (Modal) obtida com sucesso! (${realTranscript.length} caracteres)`)
+            realTranscript = String(whisperData.text)
+            console.log(`[API] Transcrição dedicada por GPU (Modal) obtida com sucesso! (${realTranscript?.length || 0} caracteres)`)
           } else {
             console.warn(`[API] Endpoint do Modal respondeu mas não retornou transcrição válida.`, whisperData)
           }
