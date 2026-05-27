@@ -1,23 +1,27 @@
 import os
 import subprocess
 from fastapi import FastAPI, HTTPException
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
-from typing import Optional
+from typing import Optional, List
 import urllib.request
 import urllib.error
 import json
 import modal
+import uuid
 
 # 1. Definir a Imagem do Container na Modal
 image = (
-    modal.Image.debian_slim()
+    modal.Image.debian_slim(python_version="3.10")
     .apt_install("ffmpeg", "nodejs")
     .pip_install(
         "faster-whisper",
         "yt-dlp",  # Voltando para yt-dlp por ter suporte nativo robusto a cookies
         "fastapi[standard]",
         "pydantic",
-        "requests"
+        "requests",
+        "TTS",    # Coqui TTS para geração e clonagem de voz XTTSv2
+        "pydub"   # Para manipulação e mesclagem de áudio
     )
 )
 
@@ -29,6 +33,16 @@ class TranscribeRequest(BaseModel):
     audio_url: str
     language: Optional[str] = None
     compute_type: Optional[str] = "float16"
+
+class DubSegment(BaseModel):
+    start: float
+    end: float
+    text: str
+
+class DubRequest(BaseModel):
+    video_url: str
+    segments: List[DubSegment]
+    language: Optional[str] = "pt"
 
 # Variável global para manter o modelo carregado na memória da GPU
 model = None
@@ -122,7 +136,96 @@ def transcribe(request: TranscribeRequest):
         if os.path.exists(full_temp_path):
             os.remove(full_temp_path)
 
-# 3. Exportar como Web Endpoint na Modal usando uma GPU NVIDIA T4
+# Variavel global para o modelo de voz (TTS)
+tts_model = None
+
+def get_tts_model():
+    global tts_model
+    if tts_model is None:
+        # Concorda com os termos da Coqui automaticamente para rodar headless
+        os.environ["COQUI_TOS_AGREED"] = "1"
+        from TTS.api import TTS
+        import torch
+        print("[*] Carregando modelo XTTS-v2 na GPU para Clonagem de Voz...")
+        # XTTS-v2 suporta PT, EN, ES, FR, etc.
+        tts_model = TTS("tts_models/multilingual/multi-dataset/xtts_v2", gpu=torch.cuda.is_available())
+        print("[+] Modelo de Voz carregado com sucesso!")
+    return tts_model
+
+@web_app.post("/dub")
+def dub_video(request: DubRequest):
+    tts = get_tts_model()
+    from pydub import AudioSegment
+    
+    session_id = str(uuid.uuid4())[:8]
+    original_video_path = f"original_{session_id}.mp4"
+    original_audio_path = f"original_audio_{session_id}.wav"
+    final_audio_path = f"final_audio_{session_id}.wav"
+    final_video_path = f"video_dublado_{session_id}.mp4"
+    
+    try:
+        url_to_download = request.video_url
+        if "api/audio-proxy?videoId=" in url_to_download:
+            video_id = url_to_download.split("videoId=")[1].split("&")[0]
+            url_to_download = f"https://www.youtube.com/watch?v={video_id}"
+
+        print(f"[~] Baixando vídeo original para Dublagem: {url_to_download}")
+        command = [
+            "yt-dlp",
+            "-f", "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best",
+            "--extractor-args", "youtube:player_client=ios,tv",
+            "--js-runtimes", "node",
+            "-o", original_video_path,
+            url_to_download
+        ]
+        subprocess.run(command, capture_output=True, text=True, check=True)
+        
+        print("[~] Extraindo Amostra de Voz de 10 segundos para Clonagem...")
+        subprocess.run(["ffmpeg", "-i", original_video_path, "-t", "10", "-vn", "-acodec", "pcm_s16le", "-ar", "44100", "-ac", "2", original_audio_path, "-y"], check=True)
+        
+        print("[~] Reduzindo volume do áudio original (Ducking)...")
+        base_audio = AudioSegment.from_file(original_video_path)
+        base_audio = base_audio - 15 # Abaixa o volume em 15dB
+        
+        # Gerando voz para cada frase traduzida
+        temp_files = []
+        for i, seg in enumerate(request.segments):
+            seg_audio_path = f"seg_{session_id}_{i}.wav"
+            print(f"[~] Clonando Voz para o trecho: '{seg.text}'")
+            
+            # Gera a fala com a voz clonada
+            tts.tts_to_file(
+                text=seg.text, 
+                speaker_wav=original_audio_path, 
+                language=request.language, 
+                file_path=seg_audio_path
+            )
+            
+            generated_audio = AudioSegment.from_file(seg_audio_path)
+            
+            # Cola a nova voz exatamente no tempo (start) do vídeo original
+            start_ms = int(seg.start * 1000)
+            base_audio = base_audio.overlay(generated_audio, position=start_ms)
+            
+            temp_files.append(seg_audio_path)
+            
+        print("[~] Mesclando nova voz com o vídeo original...")
+        base_audio.export(final_audio_path, format="wav")
+        
+        subprocess.run(["ffmpeg", "-i", original_video_path, "-i", final_audio_path, "-c:v", "copy", "-c:a", "aac", "-map", "0:v:0", "-map", "1:a:0", final_video_path, "-y"], check=True)
+        
+        print("[+] Vídeo Dublado com sucesso!")
+        
+        # Limpeza parcial (exceto o vídeo final que será retornado)
+        for f in temp_files + [original_video_path, original_audio_path, final_audio_path]:
+            if os.path.exists(f): os.remove(f)
+            
+        # Retorna o arquivo MP4 diretamente!
+        return FileResponse(final_video_path, media_type="video/mp4", filename="video_dublado.mp4")
+
+    except Exception as e:
+        print(f"[!] Erro na Dublagem: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Erro na Dublagem Automática: {str(e)}")
 @app.function(image=image, gpu="T4", timeout=1200) # Passando a montagem de arquivos via container image
 @modal.asgi_app()
 def fastapi_app():
