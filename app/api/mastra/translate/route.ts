@@ -10,9 +10,8 @@ export async function POST(request: Request) {
     }
 
     // Aciona o fluxo do Mastra AI
-    const result = await translationPipeline.execute({
-      inputData: { transcript }
-    });
+    const run = await translationPipeline.createRun();
+    const result = await run.start({ inputData: { transcript } });
 
     return NextResponse.json({
       success: true,
