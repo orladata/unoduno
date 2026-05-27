@@ -24,7 +24,7 @@ export default function DashboardPage() {
       return
     }
     setIsLoading(true)
-    router.push(`/analisar?url=${encodeURIComponent(url)}`)
+    router.push(`/dashboard/analisar?url=${encodeURIComponent(url)}`)
   }
 
   return (

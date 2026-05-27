@@ -2,9 +2,10 @@
 
 import { useEffect, useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import Link from "next/link"
 import { useProfile } from "@/app/dashboard/profile-context"
+import { createClient } from "@/utils/supabase/client"
 
 const navLinks = [
   { label: "Funcionalidades", href: "#funcionalidades" },
@@ -14,6 +15,7 @@ const navLinks = [
 
 export function Navbar() {
   const pathname = usePathname()
+  const router = useRouter()
   const isDashboard = pathname?.startsWith("/dashboard")
 
   const [scrolled, setScrolled] = useState(false)
@@ -21,6 +23,13 @@ export function Navbar() {
   const [activeSection, setActiveSection] = useState("")
   const [profileOpen, setProfileOpen] = useState(false)
   
+  const handleLogout = async () => {
+    const supabase = createClient()
+    await supabase.auth.signOut()
+    router.push("/")
+    router.refresh()
+  }
+
   const profile = useProfile()
   const creditBalance = profile?.credit_balance ?? 0
   const maxCredits = 100 // Or display dynamic
@@ -180,6 +189,13 @@ export function Navbar() {
                       <Link href="/#precos" className="flex justify-center items-center w-full py-2.5 mt-1 rounded-xl bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white text-sm font-bold shadow-[0_0_15px_rgba(37,99,235,0.3)] transition-all active:scale-95">
                         Atualizar Plano
                       </Link>
+
+                      <button 
+                        onClick={handleLogout}
+                        className="flex justify-center items-center w-full py-2.5 rounded-xl bg-white/5 hover:bg-red-500/10 text-white hover:text-red-400 border border-white/5 hover:border-red-500/20 text-sm font-semibold transition-all active:scale-95 mt-1"
+                      >
+                        Sair da conta
+                      </button>
                     </motion.div>
                   )}
                 </AnimatePresence>
