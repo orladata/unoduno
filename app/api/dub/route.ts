@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { mastra } from '@/mastra';
+import { mastra } from '@/src/mastra';
 
 export const maxDuration = 300; // 5 minutos (Dublagem é um processo pesado)
 export const dynamic = 'force-dynamic';
