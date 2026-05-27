@@ -336,7 +336,7 @@ export default function DashboardPage() {
               <motion.div
                 className="h-full bg-white/40"
                 initial={{ width: 0 }}
-                animate={{ width: `${Math.min((creditsRemaining / 10) * 100, 100)}%` }}
+                animate={{ width: `${isAdmin ? 100 : Math.min(((creditsRemaining as number) / 10) * 100, 100)}%` }}
                 transition={{ delay: 0.6, duration: 0.8 }}
               />
             </div>
