@@ -15,7 +15,7 @@ export const transcribeAudioTool = createTool({
     language: z.string().optional().describe('Código ISO do idioma de origem (ex: "pt" para Português, "en" para Inglês) para otimizar a transcrição.'),
     backend: z.enum(['groq', 'custom_whisper']).optional().default('groq').describe('O motor de transcrição a ser utilizado.'),
   }),
-  execute: async ({ context }) => {
+  execute: async (context) => {
     const { audioUrl, language, backend } = context;
 
     console.log(`[TranscribeTool] Iniciando transcrição com backend: ${backend} para a URL: ${audioUrl}`);

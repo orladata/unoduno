@@ -10,7 +10,7 @@ export const createChimedeckTask = createTool({
     language: z.string().describe('O idioma desejado para a transcrição.'),
     priority: z.enum(['low', 'medium', 'high']).describe('Prioridade da tarefa.'),
   }),
-  execute: async ({ context }) => {
+  execute: async (context) => {
     console.log('--- MOCK: CHIMEDECK TASK CREATION ---');
     console.log('Title:', context.title);
     console.log('Description:', context.description);
