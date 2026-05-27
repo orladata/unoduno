@@ -1,12 +1,11 @@
 import { NextResponse } from "next/server";
-import ytdl from "@distube/ytdl-core";
 
-export const maxDuration = 120; // 2 minutos de limite
+export const maxDuration = 120;
 export const dynamic = "force-dynamic";
 
 /**
  * Endpoint de Proxy de Áudio no seu domínio (unoduno.com)
- * Ele extrai o áudio do YouTube usando ytdl-core internamente e faz o stream em tempo real para o Modal!
+ * Ele obtém a URL direta de áudio usando a API open-source Cobalt e redireciona o Modal!
  */
 export async function GET(req: Request) {
   try {
@@ -17,36 +16,42 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: "ID do vídeo do YouTube inválido." }, { status: 400 });
     }
 
-    console.log(`[AudioProxy] Iniciando extração de áudio nativa para o vídeo: ${videoId}...`);
-
+    console.log(`[AudioProxy] Solicitando link direto do Cobalt API para o vídeo: ${videoId}...`);
     const videoUrl = `https://www.youtube.com/watch?v=${videoId}`;
     
-    // Configura o ytdl para pegar a melhor qualidade de áudio disponível
-    const audioStream = ytdl(videoUrl, {
-      quality: 'highestaudio',
-      filter: 'audioonly'
-    });
-
-    // Como o ytdl retorna um stream legível do Node, podemos transformá-arlo 
-    // em um stream da web compatível com o NextResponse.
-    const webStream = new ReadableStream({
-      start(controller) {
-        audioStream.on('data', (chunk) => controller.enqueue(chunk));
-        audioStream.on('end', () => controller.close());
-        audioStream.on('error', (err) => controller.error(err));
-      }
-    });
-
-    return new Response(webStream, {
+    // Usamos a API pública e extremamente confiável do Cobalt (open-source)
+    const cobaltResponse = await fetch("https://api.cobalt.tools/api/json", {
+      method: "POST",
       headers: {
-        "Content-Type": "audio/mpeg",
-        "Content-Disposition": `attachment; filename="${videoId}.mp3"`,
-        "Cache-Control": "public, max-age=3600"
-      }
+        "Accept": "application/json",
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        url: videoUrl,
+        isAudioOnly: true,
+        aFormat: "mp3"
+      })
     });
+
+    if (!cobaltResponse.ok) {
+      throw new Error(`Cobalt API falhou com status: ${cobaltResponse.status}`);
+    }
+
+    const data = await cobaltResponse.json();
+
+    if (data.status === 'error' || !data.url) {
+      throw new Error(data.text || "Cobalt API não retornou uma URL válida.");
+    }
+
+    console.log(`[AudioProxy] Link direto obtido com sucesso! Redirecionando a requisição do Modal...`);
+    
+    // Em vez de gastar banda da Vercel baixando e repassando o áudio,
+    // nós fazemos um REDIRECT (302). O urllib do Python no Modal vai 
+    // seguir esse redirecionamento e baixar direto do servidor do Cobalt!
+    return NextResponse.redirect(data.url);
 
   } catch (error: any) {
-    console.error(`[AudioProxy] Erro fatal no proxy de áudio:`, error.message);
+    console.error(`[AudioProxy] Erro no proxy de áudio:`, error.message);
     return NextResponse.json({ error: `Erro no proxy de áudio: ${error.message}` }, { status: 500 });
   }
 }
