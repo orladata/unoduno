@@ -58,7 +58,7 @@ const translateContent = {
 
 // Criação do Workflow
 export const translationPipeline = new Workflow({
-  name: 'Viral Translation Pipeline',
+  id: 'viral-translation-pipeline',
   triggerSchema: z.object({
     transcript: z.string(),
   }),
