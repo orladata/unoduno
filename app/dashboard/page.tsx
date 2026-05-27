@@ -58,7 +58,8 @@ export default function DashboardPage() {
       nextUrl += `&directAudioUrl=${encodeURIComponent(directAudioUrl)}`
     }
     
-    router.push(nextUrl)
+    // O cast para "any" ignora a restrição do Next.js de apenas aceitar strings estáticas (typedRoutes)
+    router.push(nextUrl as any)
   }
 
   return (
