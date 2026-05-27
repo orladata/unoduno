@@ -21,13 +21,6 @@ image = (
     )
 )
 
-# Adiciona o arquivo de cookies diretamente na imagem se ele existir localmente
-if os.path.exists("cookies.txt"):
-    print("[+] Arquivo cookies.txt local encontrado! Ele será embutido na Imagem da GPU.")
-    image = image.add_local_file("cookies.txt", remote_path="/root/cookies.txt")
-else:
-    print("[!] AVISO: cookies.txt não encontrado localmente. O yt-dlp rodará anônimo (alta chance de bloqueio do YouTube).")
-
 # 2. Criar o App da Modal
 app = modal.App("unoduno-transcriber")
 web_app = FastAPI(title="Unoduno Ultra Fast Transcriber API")
@@ -71,20 +64,13 @@ def transcribe(request: TranscribeRequest):
             command = [
                 "yt-dlp",
                 "-x", "--audio-format", "mp3",
+                "--extractor-args", "youtube:player_client=ios,tv", # Bypasses most bot checks by acting as an Apple TV/iOS device
+                "--js-runtimes", "node",
                 "-o", full_temp_path,
+                url_to_download
             ]
             
-            # Se o arquivo de cookies foi montado no container com sucesso
-            if os.path.exists("/root/cookies.txt"):
-                print("[~] Arquivo cookies.txt encontrado na GPU! Usando sua sessão para burlar robôs do YT...")
-                command.extend(["--cookies", "/root/cookies.txt"])
-            else:
-                print("[!] cookies.txt NÃO encontrado na GPU. Tentando extração anônima...")
-                # Fallback para o cliente Android falso se não tiver cookies
-                command.extend(["--extractor-args", "youtube:player_client=android"])
-            
-            command.append(url_to_download)
-            
+            print("[~] Iniciando extração anônima camuflada como dispositivo Apple TV/iOS...")
             process = subprocess.run(command, capture_output=True, text=True)
             if process.returncode != 0:
                 raise Exception(f"yt-dlp falhou com erro: {process.stderr}")
