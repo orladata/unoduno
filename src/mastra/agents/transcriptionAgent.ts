@@ -3,6 +3,7 @@ import { createChimedeckTask } from '../tools/createChimedeckTask';
 import { transcribeAudioTool } from '../tools/transcribeAudio';
 
 export const transcriptionAgent = new Agent({
+  id: 'transcription-agent',
   name: 'Transcription Onboarding Agent',
   instructions: `Você é um assistente de onboarding amigável e profissional da plataforma Unoduno. 
 Seu objetivo é ajudar o usuário a criar seu primeiro fluxo de transcrição.

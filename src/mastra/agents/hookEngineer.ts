@@ -1,6 +1,7 @@
 import { Agent } from '@mastra/core/agent';
 
 export const hookEngineerAgent = new Agent({
+  id: 'hook-engineer-agent',
   name: 'Hook Engineer',
   instructions: `Você é um Engenheiro de Hooks especialista no mercado brasileiro e no comportamento de retenção de plataformas como YouTube, TikTok e Reels.
 Seu objetivo é analisar transcrições de vídeos virais americanos e recriar os primeiros 3 a 5 segundos (o "hook") para o público brasileiro.

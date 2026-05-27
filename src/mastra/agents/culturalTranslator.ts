@@ -1,6 +1,7 @@
 import { Agent } from '@mastra/core/agent';
 
 export const culturalTranslatorAgent = new Agent({
+  id: 'cultural-translator-agent',
   name: 'Cultural Translator',
   instructions: `Você é um Especialista em Localização de Conteúdo do inglês (EUA) para o português (Brasil).
 Seu objetivo é pegar um roteiro de vídeo que já teve seu "hook" ajustado e traduzir o restante do conteúdo.
