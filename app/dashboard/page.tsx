@@ -28,9 +28,11 @@ export default function DashboardPage() {
   const TRANSCRIBE_COST = 100
   const DUB_COST = 500 // 5 creditos na UI real
 
-  const creditsRemaining = profile?.credit_balance ? Math.floor(profile.credit_balance / 100) : 0
-  const isOutOfQuotaTranscribe = profile ? profile.credit_balance < TRANSCRIBE_COST : false
-  const isOutOfQuotaDub = profile ? profile.credit_balance < DUB_COST : false
+  // Admin Override
+  const isAdmin = profile?.email === "sonarycorporation@gmail.com"
+  const creditsRemaining = isAdmin ? "Ilimitado" : (profile?.credit_balance ? Math.floor(profile.credit_balance / 100) : 0)
+  const isOutOfQuotaTranscribe = isAdmin ? false : (profile ? profile.credit_balance < TRANSCRIBE_COST : false)
+  const isOutOfQuotaDub = isAdmin ? false : (profile ? profile.credit_balance < DUB_COST : false)
 
   // Simulated Dubbing Messages
   useEffect(() => {
