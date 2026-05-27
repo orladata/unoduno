@@ -15,7 +15,9 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       success: true,
-      data: result.results.translateContent?.payload?.finalScript
+      data: (result as any).result?.finalScript 
+        || (result as any).results?.translateContent?.payload?.finalScript 
+        || (result as any).steps?.translateContent?.payload?.finalScript
     });
     
   } catch (error: any) {
