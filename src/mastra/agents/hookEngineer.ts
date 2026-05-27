@@ -1,5 +1,7 @@
 import { Agent } from '@mastra/core/agent';
 
+import { Agent } from '@mastra/core/agent';
+
 export const hookEngineerAgent = new Agent({
   id: 'hook-engineer-agent',
   name: 'Hook Engineer',
@@ -11,5 +13,5 @@ Regras:
 2. Identifique o gatilho emocional original (curiosidade, medo, utilidade, entretenimento) e o replique com força total.
 3. O Hook deve ter menos de 30 palavras para garantir que seja falado rapidamente.
 4. Mantenha um tom natural e de alta energia.`,
-  model: 'openai/gpt-4o',
+  model: 'google/gemini-1.5-pro',
 });

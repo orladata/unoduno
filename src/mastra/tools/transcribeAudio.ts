@@ -141,6 +141,18 @@ export const transcribeAudioTool = createTool({
         };
       } catch (error: any) {
         console.error('[TranscribeTool] Falha ao transcrever usando microsserviço customizado:', error);
+        
+        // --- INJEÇÃO DO AGENTE DE MONITORAMENTO DE COOKIES ---
+        try {
+          console.log('[TranscribeTool] Acionando Cookie Monitor Agent para analisar o erro...');
+          const { cookieMonitorAgent } = await import('../agents/cookieMonitorAgent');
+          await cookieMonitorAgent.generate(
+            `Analise este erro de transcrição capturado do servidor Modal. Se parecer ser um bloqueio de robô do YouTube, falha de n-sig challenge, ou cookies expirados, use a ferramenta notifyAdmin com urgência. Mensagem do erro: ${error.message}`
+          );
+        } catch (agentErr) {
+          console.error('[TranscribeTool] Falha silenciosa ao rodar o agente de monitoramento:', agentErr);
+        }
+
         return {
           success: false,
           error: `Erro ao conectar ao microsserviço de transcrição: ${error.message}`

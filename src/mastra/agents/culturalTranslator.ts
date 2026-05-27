@@ -1,5 +1,7 @@
 import { Agent } from '@mastra/core/agent';
 
+import { Agent } from '@mastra/core/agent';
+
 export const culturalTranslatorAgent = new Agent({
   id: 'cultural-translator-agent',
   name: 'Cultural Translator',
@@ -12,5 +14,5 @@ Regras:
 3. Adapte referências culturais obscuras para equivalentes locais (ex: IRS -> Receita Federal, DMV -> Detran).
 4. Mantenha o tom e o ritmo ("pacing") adequados para vídeos curtos ou longos do YouTube.
 5. Retorne APENAS o roteiro finalizado.`,
-  model: 'openai/gpt-4o',
+  model: 'google/gemini-1.5-pro',
 });
