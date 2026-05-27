@@ -21,4 +21,4 @@ Mantenha as respostas curtas, claras e com um tom animador. Use emojis quando fi
     createChimedeckTask,
     transcribeAudio: transcribeAudioTool,
   },
-
+});

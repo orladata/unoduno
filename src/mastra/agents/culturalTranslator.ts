@@ -1,7 +1,5 @@
 import { Agent } from '@mastra/core/agent';
 
-import { Agent } from '@mastra/core/agent';
-
 export const culturalTranslatorAgent = new Agent({
   id: 'cultural-translator-agent',
   name: 'Cultural Translator',

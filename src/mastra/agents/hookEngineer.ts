@@ -1,7 +1,5 @@
 import { Agent } from '@mastra/core/agent';
 
-import { Agent } from '@mastra/core/agent';
-
 export const hookEngineerAgent = new Agent({
   id: 'hook-engineer-agent',
   name: 'Hook Engineer',
