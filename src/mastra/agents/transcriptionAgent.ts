@@ -15,11 +15,7 @@ Siga este passo a passo na conversa:
 5. Se o usuário fornecer um arquivo ou link de áudio/vídeo real e desejar realizar a transcrição imediatamente com velocidade absurda, utilize a ferramenta "transcribeAudio" para obter a transcrição em tempo recorde!
 
 Mantenha as respostas curtas, claras e com um tom animador. Use emojis quando fizer sentido.`,
-  model: {
-    provider: 'OPEN_AI',
-    name: 'gpt-4o',
-    toolChoice: 'auto',
-  },
+  model: 'openai/gpt-4o',
   tools: {
     createChimedeckTask,
     transcribeAudio: transcribeAudioTool,

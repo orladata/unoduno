@@ -11,9 +11,5 @@ Regras:
 3. Adapte referências culturais obscuras para equivalentes locais (ex: IRS -> Receita Federal, DMV -> Detran).
 4. Mantenha o tom e o ritmo ("pacing") adequados para vídeos curtos ou longos do YouTube.
 5. Retorne APENAS o roteiro finalizado.`,
-  model: {
-    provider: 'OPEN_AI',
-    name: 'gpt-4o',
-    toolChoice: 'auto',
-  },
+  model: 'openai/gpt-4o',
 });

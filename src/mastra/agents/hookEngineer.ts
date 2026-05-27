@@ -10,9 +10,5 @@ Regras:
 2. Identifique o gatilho emocional original (curiosidade, medo, utilidade, entretenimento) e o replique com força total.
 3. O Hook deve ter menos de 30 palavras para garantir que seja falado rapidamente.
 4. Mantenha um tom natural e de alta energia.`,
-  model: {
-    provider: 'OPEN_AI',
-    name: 'gpt-4o',
-    toolChoice: 'auto',
-  },
+  model: 'openai/gpt-4o',
 });
