@@ -170,15 +170,25 @@ def dub_video(request: DubRequest):
             url_to_download = f"https://www.youtube.com/watch?v={video_id}"
 
         print(f"[~] Baixando vídeo original para Dublagem: {url_to_download}")
-        command = [
-            "yt-dlp",
-            "-f", "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best",
-            "--extractor-args", "youtube:player_client=ios,tv",
-            "--js-runtimes", "node",
-            "-o", original_video_path,
-            url_to_download
-        ]
-        subprocess.run(command, capture_output=True, text=True, check=True)
+        
+        if "youtube.com" in url_to_download or "youtu.be" in url_to_download:
+            command = [
+                "yt-dlp",
+                "-f", "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best",
+                "--extractor-args", "youtube:player_client=ios,tv",
+                "--js-runtimes", "node",
+                "-o", original_video_path,
+                url_to_download
+            ]
+            subprocess.run(command, capture_output=True, text=True, check=True)
+        else:
+            print("[~] URL de vídeo genérica detectada. Realizando download via requests...")
+            import requests
+            req = requests.get(url_to_download, stream=True)
+            with open(original_video_path, "wb") as f:
+                for chunk in req.iter_content(chunk_size=1024*1024):
+                    if chunk: f.write(chunk)
+            print("[+] Download genérico concluído!")
         
         print("[~] Extraindo Amostra de Voz de 10 segundos para Clonagem...")
         subprocess.run(["ffmpeg", "-i", original_video_path, "-t", "10", "-vn", "-acodec", "pcm_s16le", "-ar", "44100", "-ac", "2", original_audio_path, "-y"], check=True)
