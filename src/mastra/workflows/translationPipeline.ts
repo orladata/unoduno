@@ -1,4 +1,4 @@
-import { Workflow, Step } from '@mastra/core';
+import { Workflow, Step } from '@mastra/core/workflows';
 import { hookEngineerAgent } from '../agents/hookEngineer';
 import { culturalTranslatorAgent } from '../agents/culturalTranslator';
 import { z } from 'zod';

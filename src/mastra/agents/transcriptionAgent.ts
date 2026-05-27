@@ -1,4 +1,4 @@
-import { Agent } from '@mastra/core';
+import { Agent } from '@mastra/core/agent';
 import { createChimedeckTask } from '../tools/createChimedeckTask';
 import { transcribeAudioTool } from '../tools/transcribeAudio';
 
