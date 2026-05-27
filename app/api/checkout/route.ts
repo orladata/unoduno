@@ -1,7 +1,13 @@
 import { NextRequest, NextResponse } from "next/server"
 import Stripe from "stripe"
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string)
+// Lazy initialization para evitar erros em build-time
+function getStripe() {
+  if (!process.env.STRIPE_SECRET_KEY) {
+    throw new Error("STRIPE_SECRET_KEY não está configurada")
+  }
+  return new Stripe(process.env.STRIPE_SECRET_KEY)
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -37,7 +43,7 @@ export async function POST(req: NextRequest) {
     // Define the base URL safely, falling back to localhost for dev
     const origin = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"
 
-    const session = await stripe.checkout.sessions.create({
+    const session = await getStripe().checkout.sessions.create({
       payment_method_types: ["card", "pix"],
       payment_method_options: {
         pix: {

@@ -285,13 +285,55 @@ export async function POST(req: Request) {
     // Lock in KV (5 mins TTL)
     await kv.set(`video:${videoId}`, { status: 'processing' }, { ex: 300 });
 
-    // ── PHASE 1: Fetch real YouTube transcript ──────────────────────────────
-    console.log(`[API] Fetching transcript for video: ${videoId}`)
-    const realTranscript = await fetchYouTubeTranscript(videoId)
+    // ── PHASE 1: Fetch real YouTube transcript using Dedicated GPU (Modal.com) ──
+    console.log(`[API] Iniciando transcrição dedicada via GPU no Modal para o vídeo: ${videoId}...`)
+    let realTranscript: string | null = null
+
+    if (process.env.CUSTOM_WHISPER_URL) {
+      try {
+        // Define a URL base do site. Se for localhost, usa o domínio de produção para a nuvem conseguir acessar!
+        const siteUrl = process.env.NEXT_PUBLIC_SITE_URL?.includes("localhost")
+          ? "https://unoduno.com"
+          : process.env.NEXT_PUBLIC_SITE_URL || "https://unoduno.com"
+          
+        const proxiedAudioUrl = `${siteUrl}/api/audio-proxy?videoId=${videoId}`
+        
+        console.log(`[API] Enviando requisição de transcrição para o Modal usando proxy de áudio: ${proxiedAudioUrl}`)
+
+        const whisperRes = await fetch(process.env.CUSTOM_WHISPER_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            audio_url: proxiedAudioUrl,
+            language: "pt"
+          })
+        })
+        
+        if (whisperRes.ok) {
+          const whisperData = await whisperRes.json()
+          if (whisperData.success && whisperData.text) {
+            realTranscript = whisperData.text
+            console.log(`[API] Transcrição dedicada por GPU (Modal) obtida com sucesso! (${realTranscript.length} caracteres)`)
+          } else {
+            console.warn(`[API] Endpoint do Modal respondeu mas não retornou transcrição válida.`, whisperData)
+          }
+        } else {
+          console.error(`[API] Erro ao conectar ao Modal: ${whisperRes.statusText}`)
+        }
+      } catch (error) {
+        console.error(`[API] Erro no pipeline de transcrição do Modal:`, error)
+      }
+    }
+
+    // Fallback de extrema segurança se o Modal falhar ou não estiver configurado
+    if (!realTranscript) {
+      console.log(`[API] Fallback de segurança: Buscando legendas padrão do YouTube para o vídeo: ${videoId}`)
+      realTranscript = await fetchYouTubeTranscript(videoId)
+    }
 
     const transcriptStatus = realTranscript
-      ? `✅ Transcrição real obtida das legendas do YouTube (${realTranscript.length} caracteres).`
-      : `⚠️ Legendas não disponíveis — o Gemini deve transcrever diretamente pelo áudio do vídeo.`
+      ? `✅ Transcrição obtida via GPU Modal (${realTranscript.length} caracteres).`
+      : `⚠️ Falha ao obter transcrição pelo Modal e pelas legendas do YouTube.`
 
     console.log(`[API] ${transcriptStatus}`)
 

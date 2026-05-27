@@ -178,11 +178,11 @@ export function HeroSection(): React.ReactElement {
         {/* H1 Typography Overhaul */}
         <motion.h1
           variants={itemVariants}
-          className="text-5xl md:text-7xl lg:text-[6rem] font-black leading-[1.05] tracking-tighter mb-6 text-balance text-transparent bg-clip-text bg-gradient-to-b from-white to-white/60 animate-in fade-in zoom-in duration-1000"
+          className="text-5xl md:text-7xl lg:text-[6rem] font-black tracking-tighter leading-[1.05] mb-6 text-balance text-transparent bg-clip-text bg-gradient-to-b from-white via-white/90 to-white/60 animate-in fade-in zoom-in duration-1000"
         >
           Onde o viral
           <br />
-          <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-indigo-400 to-violet-400 animate-pulse">se torna seu.</span>
+          <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-300 via-indigo-300 to-violet-300">se torna seu.</span>
         </motion.h1>
 
         {/* Subtext */}
@@ -199,17 +199,17 @@ export function HeroSection(): React.ReactElement {
             onSubmit={handleSubmit}
             animate={error ? { x: [-10, 10, -10, 10, 0] } : {}}
             transition={{ duration: 0.4 }}
-            className={`flex flex-col sm:flex-row items-stretch gap-2 p-2 rounded-2xl transition-all duration-300 backdrop-blur-xl ${
+            className={`flex flex-col sm:flex-row items-center gap-2 p-1.5 sm:pl-4 rounded-[2rem] sm:rounded-full transition-all duration-300 backdrop-blur-2xl ${
               error
                 ? "bg-red-950/20 border border-red-500/50 shadow-[0_0_30px_rgba(239,68,68,0.2)]"
-                : "bg-white/5 border border-white/10 shadow-[0_0_40px_rgba(255,255,255,0.05)] focus-within:border-blue-500/50 focus-within:shadow-[0_0_40px_rgba(59,130,246,0.3)] hover:border-white/20"
+                : "bg-white/[0.03] border border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.5)] focus-within:bg-white/[0.05] focus-within:border-white/20 hover:border-white/15"
             }`}
             aria-label="Analisar vídeo do YouTube"
             noValidate
           >
             <label htmlFor="youtube-url" className="sr-only">URL do YouTube</label>
-            <div className="relative flex-1 flex items-center px-4">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-white/30 mr-2 shrink-0">
+            <div className="relative flex-1 flex items-center px-4 sm:px-0 w-full sm:w-auto">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-white/30 mr-3 shrink-0">
                 <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
                 <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
               </svg>
@@ -228,22 +228,13 @@ export function HeroSection(): React.ReactElement {
             <button
               type="submit"
               disabled={isSubmitting}
-              onMouseMove={(e) => {
-                const rect = e.currentTarget.getBoundingClientRect();
-                const x = ((e.clientX - rect.left) / rect.width) * 100;
-                const y = ((e.clientY - rect.top) / rect.height) * 100;
-                e.currentTarget.style.setProperty('--mouse-x', `${x}%`);
-                e.currentTarget.style.setProperty('--mouse-y', `${y}%`);
-              }}
-              className="group glare-wrapper relative overflow-hidden shrink-0 px-8 py-3.5 sm:py-3 rounded-xl text-[15px] font-bold tracking-wide cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed bg-blue-600 hover:bg-blue-500 text-white transition-all duration-300 active:scale-95 flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(37,99,235,0.4)] hover:shadow-[0_0_40px_rgba(37,99,235,0.8)]"
+              className="group relative overflow-hidden shrink-0 w-full sm:w-auto px-6 py-3 rounded-full text-[14px] font-semibold cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed bg-white text-black hover:bg-neutral-200 transition-all duration-300 active:scale-95 flex items-center justify-center gap-2 shadow-[0_4px_14px_0_rgba(255,255,255,0.1)]"
             >
-              <div className="glare-effect z-10" />
-              <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]" />
               {isSubmitting ? (
-                <svg className="animate-spin h-5 w-5 relative z-20" viewBox="0 0 24 24" fill="none"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+                <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24" fill="none"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
               ) : (
-                <div className="flex items-center gap-2 relative z-20">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                <div className="flex items-center gap-2">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polygon points="5 3 19 12 5 21 5 3"/></svg>
                   <span>Analisar</span>
                 </div>
               )}
@@ -308,7 +299,7 @@ export function HeroSection(): React.ReactElement {
           {/* Subtle Glow behind the mockup */}
           <div className="absolute inset-0 bg-blue-500/20 blur-[100px] rounded-full scale-75" />
           
-          <div className="relative mx-auto w-full max-w-4xl rounded-t-3xl border-t border-l border-r border-white/10 bg-black/40 backdrop-blur-2xl p-4 sm:p-6 shadow-2xl overflow-hidden" style={{ transform: "perspective(1000px) rotateX(10deg)", transformOrigin: "bottom" }}>
+          <div className="relative mx-auto w-full max-w-4xl rounded-t-3xl border-t border-l border-r border-white/[0.15] bg-white/[0.01] backdrop-blur-[40px] p-4 sm:p-6 shadow-[0_-20px_80px_rgba(0,0,0,0.8)] overflow-hidden" style={{ transform: "perspective(1000px) rotateX(8deg)", transformOrigin: "bottom" }}>
             {/* Fake Mac Window Controls */}
             <div className="flex gap-2 mb-6">
               <div className="w-3 h-3 rounded-full bg-red-500/50" />

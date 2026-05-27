@@ -420,6 +420,8 @@ function RawScriptCard({ content }: { readonly content: string }) {
 // ─── Error State ───────────────────────────────────────────────────────���──────
 
 function ErrorState({ message, onRetry }: { readonly message: string; readonly onRetry: () => void }) {
+  const isAuthError = message.toLowerCase().includes("autorizado") || message.toLowerCase().includes("login")
+
   return (
     <div className="flex flex-col items-center justify-center gap-6 py-24 text-center" role="alert">
       <div
@@ -439,14 +441,25 @@ function ErrorState({ message, onRetry }: { readonly message: string; readonly o
           {sanitizeTextContent(message)}
         </p>
       </div>
-      <button
-        type="button"
-        onClick={onRetry}
-        className="px-5 py-2.5 rounded-xl text-sm font-medium text-black bg-white hover:bg-white/95 active:scale-[0.98] transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
-        style={{ minHeight: "44px" }}
-      >
-        Tentar novamente
-      </button>
+      <div className="flex flex-col sm:flex-row items-center gap-3">
+        {isAuthError && (
+          <Link
+            href="/login"
+            className="px-5 py-2.5 rounded-xl text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 active:scale-[0.98] transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+            style={{ minHeight: "44px", display: "flex", alignItems: "center", justifyContent: "center" }}
+          >
+            Fazer login
+          </Link>
+        )}
+        <button
+          type="button"
+          onClick={onRetry}
+          className="px-5 py-2.5 rounded-xl text-sm font-medium text-black bg-white hover:bg-white/95 active:scale-[0.98] transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
+          style={{ minHeight: "44px", display: "flex", alignItems: "center", justifyContent: "center" }}
+        >
+          Tentar novamente
+        </button>
+      </div>
     </div>
   )
 }

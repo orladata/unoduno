@@ -103,6 +103,18 @@ export function useChatAPI(): UseChatReturn {
         const message = err instanceof Error ? err.message : 'Erro desconhecido'
         setError({ message, code: 'CHAT_ERROR' })
         setStatus('error')
+
+        // Catalog the error
+        fetch('/api/log-error', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            message,
+            code: 'CHAT_ERROR',
+            url: window?.location?.href,
+            timestamp: new Date().toISOString()
+          })
+        }).catch(() => {})
       }
     },
     [messages]

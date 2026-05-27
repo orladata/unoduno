@@ -89,13 +89,17 @@ export function Navbar() {
   return (
     <>
       <header
-        className={`fixed top-0 left-0 right-0 z-50 px-6 transition-all duration-400 ease-out ${
+        className={`fixed left-0 right-0 z-50 transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] flex justify-center ${
           scrolled
-            ? "py-4 bg-black/85 backdrop-blur-xl border-b border-white/10"
-            : "py-6 bg-transparent border-b border-transparent"
+            ? "top-4 px-4"
+            : "top-0 px-6"
         }`}
       >
-        <div className="max-w-6xl mx-auto flex items-center justify-between">
+        <div className={`w-full transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] flex items-center justify-between ${
+          scrolled
+            ? "max-w-4xl bg-[#0a0a0a]/70 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.6)] border border-white/[0.08] rounded-full py-2.5 px-6"
+            : "max-w-5xl bg-transparent border border-transparent py-6 px-0"
+        }`}>
           <a
             href="#inicio"
             className="text-lg font-black tracking-tight text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded-sm"

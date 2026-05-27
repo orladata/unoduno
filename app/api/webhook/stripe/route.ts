@@ -2,7 +2,13 @@ import { NextRequest, NextResponse } from "next/server"
 import Stripe from "stripe"
 import { createAdminClient } from "@/utils/supabase/admin"
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string)
+// Lazy initialization para evitar erros em build-time
+function getStripe() {
+  if (!process.env.STRIPE_SECRET_KEY) {
+    throw new Error("STRIPE_SECRET_KEY não está configurada")
+  }
+  return new Stripe(process.env.STRIPE_SECRET_KEY)
+}
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET
 
@@ -20,7 +26,7 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       )
     }
-    event = stripe.webhooks.constructEvent(body, sig, webhookSecret)
+    event = getStripe().webhooks.constructEvent(body, sig, webhookSecret)
   } catch (err: any) {
     console.error("Webhook Signature Verification Failed:", err.message)
     return NextResponse.json(

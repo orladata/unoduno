@@ -13,9 +13,12 @@ export async function GET(request: Request) {
     if (!error) {
       // Successful login, redirect to target page
       return NextResponse.redirect(`${origin}${next}`)
+    } else {
+      console.error('[Auth Callback] Exchange Error:', error)
+      return NextResponse.redirect(`${origin}/login?error=${encodeURIComponent(error.message)}`)
     }
   }
 
-  // If there's an error, redirect back to login page with an error message
-  return NextResponse.redirect(`${origin}/login?error=OAuth%20Failed`)
+  // If there's no code, redirect back to login page
+  return NextResponse.redirect(`${origin}/login?error=Código%20de%20autenticação%20ausente`)
 }
