@@ -149,6 +149,43 @@ export const ResearchFindingSchema = z.object({
 
 export type ResearchFinding = z.infer<typeof ResearchFindingSchema>;
 
+/**
+ * YouTube Transcription Schema - Resultado estruturado de transcrição
+ */
+export const YouTubeTranscriptionSchema = z.object({
+  success: z.boolean().describe('Se a transcrição foi bem-sucedida'),
+  videoId: z.string().describe('ID único do vídeo no YouTube'),
+  audioUrl: z.string().url().describe('URL pública do arquivo de áudio (MP3/M4A)'),
+  transcript: z.string().describe('Texto completo da transcrição'),
+  segments: z.array(
+    z.object({
+      start: z.number().describe('Tempo de início do segmento (segundos)'),
+      end: z.number().describe('Tempo de término do segmento (segundos)'),
+      text: z.string().describe('Texto do segmento'),
+      confidence: z.number().min(0).max(1).optional().describe('Confiança da transcrição (0-1)'),
+    })
+  ).describe('Segmentos de áudio com timestamps'),
+  metadata: z.object({
+    title: z.string().optional().describe('Título original do vídeo'),
+    author: z.string().optional().describe('Autor/criador do vídeo'),
+    duration: z.number().optional().describe('Duração total do vídeo (segundos)'),
+    language: z.string().describe('Idioma detectado (código ISO, ex: "pt", "en")'),
+    languageProbability: z.number().min(0).max(1).optional().describe('Confiança na detecção de idioma'),
+    thumbnail: z.string().url().optional().describe('URL da thumbnail do vídeo'),
+  }).describe('Metadados do vídeo'),
+  transcriptionStats: z.object({
+    wordCount: z.number().describe('Número total de palavras'),
+    averageWordsPerSegment: z.number().describe('Média de palavras por segmento'),
+    totalSegments: z.number().describe('Número total de segmentos'),
+    processingTimeSeconds: z.number().describe('Tempo de processamento (segundos)'),
+    backend: z.enum(['groq', 'modal', 'google-cloud']).describe('Backend utilizado'),
+  }).describe('Estatísticas da transcrição'),
+  error: z.string().optional().describe('Mensagem de erro se houver falha'),
+  timestamp: z.string().datetime().describe('Data/hora de processamento'),
+});
+
+export type YouTubeTranscription = z.infer<typeof YouTubeTranscriptionSchema>;
+
 // Export todos os schemas
 export const SCHEMAS = {
   HookVariation: HookVariationSchema,
@@ -158,4 +195,5 @@ export const SCHEMAS = {
   TranslationTask: TranslationTaskSchema,
   ViralPattern: ViralPatternSchema,
   ResearchFinding: ResearchFindingSchema,
+  YouTubeTranscription: YouTubeTranscriptionSchema,
 };

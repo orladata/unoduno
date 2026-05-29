@@ -8,6 +8,7 @@ import { viralAnalystAgent } from './agents/viralAnalyst';
 import { researchOrchestratorAgent } from './agents/researchOrchestrator';
 import { culturalTranslatorAgent } from './agents/culturalTranslator';
 import { hookEngineerAgent } from './agents/hookEngineer';
+import { youtubeAudioAgent } from './agents/youtubeAudioAgent';
 
 export const mastra = new Mastra({
   agents: {
@@ -23,6 +24,8 @@ export const mastra = new Mastra({
     // Existing agents with enhanced prompts
     culturalTranslatorAgent,
     hookEngineerAgent,
+    // YouTube Audio Processing Agent
+    youtubeAudioAgent,
   },
 });
 
