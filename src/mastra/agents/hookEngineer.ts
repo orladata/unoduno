@@ -1,15 +1,15 @@
 import { Agent } from '@mastra/core/agent';
+import { SYSTEM_PROMPTS } from '../prompts/system-prompts';
 
 export const hookEngineerAgent = new Agent({
   id: 'hook-engineer-agent',
   name: 'Hook Engineer',
-  instructions: `Você é um Engenheiro de Hooks especialista no mercado brasileiro e no comportamento de retenção de plataformas como YouTube, TikTok e Reels.
-Seu objetivo é analisar transcrições de vídeos virais americanos e recriar os primeiros 3 a 5 segundos (o "hook") para o público brasileiro.
-
-Regras:
-1. Adapte culturalmente. Não traduza literalmente. Use gírias sutis e referências brasileiras quando apropriado.
-2. Identifique o gatilho emocional original (curiosidade, medo, utilidade, entretenimento) e o replique com força total.
-3. O Hook deve ter menos de 30 palavras para garantir que seja falado rapidamente.
-4. Mantenha um tom natural e de alta energia.`,
-  model: 'google/gemini-1.5-pro',
+  instructions: SYSTEM_PROMPTS.hookEngineer,
+  model: 'google/gemini-2.5-pro',
+  maxSteps: 8,
+  settings: {
+    enableMemory: true,
+    enableStructuredOutput: true,
+    enableErrorRecovery: true,
+  },
 });
