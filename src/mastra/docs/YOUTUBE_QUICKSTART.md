@@ -234,7 +234,7 @@ export function TranscriptionModal() {
                 <div className="flex gap-2 text-xs text-gray-600">
                   <span>⏱️ {(result.metadata.duration / 60).toFixed(1)}min</span>
                   <span>📝 {result.transcriptionStats.wordCount} palavras</span>
-                  <span>🚀 {result.transcriptionStats.backend.toUpperCase()}</span>
+                  <span>🚀 Modal Whisper</span>
                 </div>
               </div>
 
@@ -361,9 +361,6 @@ const handleSendToTranscription = async (audioUrl: string) => {
 # .env.local
 NEXT_PUBLIC_API_URL=http://localhost:3000
 
-# Para transcrição via Groq (recomendado - ultra-rápido)
-GROQ_API_KEY=gsk_xxxxxxxxxxxxxxxxxxxxx
-
 # Para transcrição via Modal (recomendado - melhor qualidade)
 CUSTOM_WHISPER_URL=https://seu-usuario--unoduno-transcriber.modal.run
 
@@ -434,9 +431,8 @@ const handleError = (error: any) => {
 |------|--------------|---------|
 | Validação URL | <100ms | Browser |
 | Download áudio | 2-10s | Cobalt API |
-| Transcrição 10min | 8-15s | Groq |
 | Transcrição 10min | 25-45s | Modal |
-| Resposta Total | 10-60s | Auto |
+| Resposta Total | 30-60s | Modal |
 
 ---
 

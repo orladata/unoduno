@@ -93,7 +93,7 @@ Input: YouTube URL
    ✗ Cobalt falha → Tenta Modal
    ↓
 [Transcrição]
-   ✓ Escolhe backend (Groq/Modal)
+   ✓ Modal Whisper (Backend Único)
    ✓ Envia para transcrição
    ✓ Recebe texto + segmentos
    ↓
@@ -145,8 +145,7 @@ const result = await mastra.agents.youtubeAudioAgent.generate(
 |------------|--------|----------|
 | Download MP3 | ✅ | Cobalt API + Modal fallback |
 | Download M4A | ✅ | Mesmo sistema |
-| Transcrição Rápida | ✅ | Groq: 8-15s para 10 min |
-| Transcrição Alta Qualidade | ✅ | Modal: 25-45s para 10 min |
+| Transcrição Qualidade | ✅ | Modal Whisper: 25-45s para 10 min |
 | Segmentos com Timestamps | ✅ | Precisão de 0.1s |
 | Metadados de Vídeo | ✅ | Título, autor, thumbnail |
 | Estatísticas | ✅ | Word count, backend usado, tempo |
@@ -160,9 +159,8 @@ const result = await mastra.agents.youtubeAudioAgent.generate(
 ### Variáveis de Ambiente
 
 ```bash
-# Obrigatório (pelo menos um)
-GROQ_API_KEY=gsk_xxxxx                      # Para Groq
-CUSTOM_WHISPER_URL=https://modal-url.com    # Para Modal
+# Obrigatório
+CUSTOM_WHISPER_URL=https://modal-url.com    # Para Modal Whisper
 
 # Opcional
 BLOB_READ_WRITE_TOKEN=xxx                   # Para persistência
@@ -180,15 +178,14 @@ BLOB_READ_WRITE_TOKEN=xxx                   # Para persistência
 ### Benchmarks
 - **Validação URL:** <100ms
 - **Download Cobalt:** 2-10s
-- **Transcrição Groq:** 8-15s (10 min video)
 - **Transcrição Modal:** 25-45s (10 min video)
-- **Total:** 10-60s (depende do tamanho e backend)
+- **Total:** 30-60s (depende do tamanho do vídeo)
 
 ### Otimizações
 - Cobalt retorna MP3 direto (não re-encoda)
-- Groq é 60x mais rápido que transcription.ai
 - Modal usa GPU T4 para performance
 - VAD Filter elimina silêncios
+- Segmentação automática inteligente
 
 ---
 
@@ -198,9 +195,6 @@ BLOB_READ_WRITE_TOKEN=xxx                   # Para persistência
 ```
 Cobalt falha?
   └─→ Tenta Modal yt-dlp
-
-Groq indisponível?
-  └─→ Usa Modal Whisper
 
 Transcrição falha?
   └─→ Tenta sem idioma especificado
@@ -230,7 +224,7 @@ Tudo falha?
 
 ---
 
-## 📚 Documentação
+## 📚 Documentaç��o
 
 - **YOUTUBE_AUDIO_EXTRACTION.md** - Arquitetura e design
 - **YOUTUBE_QUICKSTART.md** - Guia prático com exemplos
