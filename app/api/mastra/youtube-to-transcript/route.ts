@@ -33,7 +33,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const { videoUrl, format = 'mp3', transcriptionBackend = 'auto' } = payload;
+    const { videoUrl, format = 'mp3' } = payload;
 
     if (!videoUrl) {
       return NextResponse.json(
@@ -60,12 +60,11 @@ export async function POST(request: Request) {
 
 URL: ${videoUrl}
 Formato de áudio: ${format}
-Backend de transcrição: ${transcriptionBackend}
 
 INSTRUÇÕES:
 1. Valide o link do YouTube
 2. Faça download do áudio em ${format}
-3. Transcreva usando o backend ${transcriptionBackend === 'auto' ? 'mais rápido disponível' : transcriptionBackend}
+3. Transcreva usando o backend Modal disponível
 4. Retorne um JSON estruturado com EXATAMENTE esta estrutura:
 {
   "success": true,
@@ -88,7 +87,7 @@ INSTRUÇÕES:
     "averageWordsPerSegment": 15,
     "totalSegments": 82,
     "processingTimeSeconds": 45,
-    "backend": "groq"
+    "backend": "modal"
   },
   "timestamp": "${new Date().toISOString()}"
 }
@@ -186,11 +185,10 @@ export async function GET(request: Request) {
     endpoint: '/api/mastra/youtube-to-transcript',
     method: 'POST',
     usage: {
-      description: 'Processa um link do YouTube e retorna áudio + transcrição',
+      description: 'Processa um link do YouTube e retorna áudio + transcrição via Modal',
       payload: {
         videoUrl: 'string (obrigatório) - Link do YouTube',
         format: 'string (opcional) - "mp3" ou "m4a" (padrão: "mp3")',
-        transcriptionBackend: 'string (opcional) - "groq", "modal" ou "auto" (padrão: "auto")',
       },
     },
   });
