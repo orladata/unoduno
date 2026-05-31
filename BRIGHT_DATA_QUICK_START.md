@@ -1,75 +1,70 @@
-# Bright Data Quick Start - Zona Auto-Setup
+# Bright Data Quick Start
 
-## 3 Passos Rápidos
+Setup automático de proxy residencial Bright Data em 3 passos.
 
-### 1️⃣ Instalar Dependências
+## Passo 1: Obter Credenciais Bright Data
+
+1. Acesse: https://www.brightdata.com/
+2. Faça login ou crie uma conta
+3. Vá para **Dashboard → Settings → API**
+4. Copie:
+   - **API Key** (aka "Authentication Token")
+   - **Username** (seu username Bright Data)
+
+## Passo 2: Executar Script de Setup
+
 ```bash
-pip install requests
+python scripts/bright_data_setup.py \
+  --api-key YOUR_API_KEY \
+  --username YOUR_USERNAME
 ```
 
-### 2️⃣ Executar Script de Auto-Setup
-```bash
-# Opção A: Com argumentos
-python scripts/bright_data_setup.py \
-  --api-key "YOUR_API_KEY" \
-  --username "YOUR_USERNAME"
+Ou use variáveis de ambiente:
 
-# Opção B: Com variáveis de ambiente
-export BRIGHT_DATA_API_KEY="YOUR_API_KEY"
-export BRIGHT_DATA_USERNAME="YOUR_USERNAME"
+```bash
+export BRIGHT_DATA_API_KEY=your_api_key
+export BRIGHT_DATA_USERNAME=your_username
 python scripts/bright_data_setup.py
 ```
 
-### 3️⃣ Copiar Credenciais para .env
-O script gera um arquivo `BRIGHT_DATA_CREDENTIALS.env` com:
-```bash
-BRIGHT_DATA_API_KEY=...
-BRIGHT_DATA_USERNAME=...
-BRIGHT_DATA_ZONE=unoduno-youtube-zone
-BRIGHT_DATA_PROXY_PORT=22225
-```
+## Passo 3: Adicionar Credenciais ao .env
 
-Copie essas variáveis para seu `.env` do projeto.
+O script cria um arquivo `BRIGHT_DATA_CREDENTIALS.env` com as credenciais. Copie o conteúdo para seu `.env.local` ou arquivo de variáveis de ambiente da aplicação.
 
-## Onde Conseguir API Key e Username?
+## O que o Script Faz
 
-1. Acesse https://www.brightdata.com/ e faça login
-2. Vá para **Settings** → **API** → **Authentication**
-3. Copie:
-   - **Username**: Ex. `brd-customer-123456`
-   - **API Key**: Ex. `abcd1234-efgh5678-ijkl9012`
+1. **Testa conexão** com as credenciais fornecidas
+2. **Lista zonas** existentes para não duplicar
+3. **Cria zona residencial** `unoduno-youtube-zone` (se não existir)
+4. **Salva credenciais** formatadas em `BRIGHT_DATA_CREDENTIALS.env`
+5. **Gera script de teste** para validar o proxy
 
-## O Que o Script Faz?
-
-- ✅ Testa conexão com API Bright Data
-- ✅ Cria zona `unoduno-youtube-zone` com proxy residencial
-- ✅ Formata credenciais para .env
-- ✅ Gera script de teste (`scripts/test_bright_data_proxy.py`)
-- ✅ Valida que o proxy funciona com YouTube
-
-## Próximo Passo
-
-Depois de configurar, deploy o Modal Worker:
+## Validar Proxy
 
 ```bash
-modal deploy scripts/modal_audio_extractor_with_bright_data.py
+python scripts/test_bright_data_proxy.py
 ```
+
+Este script testa:
+- Conexão com o proxy
+- Download de vídeo YouTube via proxy
+- Compatibilidade com yt-dlp
 
 ## Troubleshooting
 
-**"Erro 401: Unauthorized"**
-- Verifique API Key e Username (copie exatamente do dashboard)
-- Certifique-se que a conta Bright Data é válida
+### "Conexão falhou"
+- Verifique se API Key e Username estão corretos
+- Confirme que sua conta tem acesso a proxy residencial
 
-**"Zona já existe"**
-- O script detecta se a zona já foi criada
-- Pode usar a zona existente sem problemas
+### "Zona não foi criada"
+- Pode ser que a zona já existe (script detecta e reutiliza)
+- Verifique no dashboard Bright Data
 
-**"Proxy não funciona"**
-- Execute: `python scripts/test_bright_data_proxy.py`
-- Verifique se credenciais estão corretas em .env
-- Contato Bright Data support: https://support.brightdata.com/
+### "yt-dlp falha com proxy"
+- Confirme que zona está ativa no dashboard
+- Tente testar proxy com `curl` primeiro
+- Verifique se a porta (22225) está correta
 
 ## Documentação Completa
 
-Ver: `BRIGHT_DATA_SETUP.md` para setup manual e troubleshooting avançado.
+Para mais detalhes, veja: `BRIGHT_DATA_SETUP.md`
