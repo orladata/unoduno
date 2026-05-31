@@ -100,6 +100,10 @@ print_success "Variáveis de ambiente validadas"
 # ============================================================================
 print_header "PASSO 2: Setup Bright Data (Auto)"
 
+# Instalar dependências necessárias para o script Python
+echo "Instalando dependências Python..."
+python3 -m pip install --quiet requests
+
 echo "Executando script de auto-setup..."
 python3 scripts/bright_data_setup.py \
     --api-key "$BRIGHT_DATA_API_KEY" \
