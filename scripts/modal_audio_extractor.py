@@ -40,18 +40,22 @@ volume = modal.Volume.from_name("unoduno-media-cache", create_if_missing=True)
     cpu=1.0,      # Alocação de 1 Core dedicada para processamento de codec
     memory=2048   # 2GB de RAM para Whisper processing
 )
-def extract_and_transcribe(video_url: str, user_headers: dict = None) -> dict:
+def extract_and_transcribe(video_url: str, user_headers: dict = None, cookies_netscape: str = None) -> dict:
     """
     Processa um vídeo do YouTube: download + transcrição com Whisper.
     
     Args:
         video_url: URL do YouTube
         user_headers: Headers HTTP do usuário (preserva IP original)
+        cookies_netscape: Cookies em formato Netscape para autenticação YouTube
     
     Returns:
         dict com {success, videoId, transcript, segments, metadata, stats}
     """
     import whisper
+    import tempfile
+    
+    cookies_file = None
     
     try:
         # Gerar ID temporário para evitar colisão
@@ -60,19 +64,33 @@ def extract_and_transcribe(video_url: str, user_headers: dict = None) -> dict:
         
         print(f"[Extractor] Iniciando processamento: {video_id}")
         
-        # 1. Download via yt-dlp com IP do usuário
-        # O user_headers preserva o contexto original do usuário, não datacenter
+        # 0. Salvar cookies em arquivo temporário se fornecidos
+        if cookies_netscape:
+            with tempfile.NamedTemporaryFile(mode='w', suffix='.txt', delete=False) as f:
+                f.write(cookies_netscape)
+                cookies_file = f.name
+            print(f"[Extractor] Cookies salvos em arquivo temporário: {cookies_file}")
+        
+        # 1. Download via yt-dlp com IP do usuário e cookies de autenticação
         cmd = [
             "yt-dlp",
             "-x",  # Extrair apenas áudio
             "--audio-format", "mp3",
             "--audio-quality", "48",  # 48kbps - bitrate muito baixo
             "-o", audio_path,
-            video_url
         ]
         
+        # Adicionar cookies se fornecidos (authenticação com YouTube)
+        if cookies_file:
+            cmd.extend(["--cookies", cookies_file])
+            print(f"[Extractor] yt-dlp usando cookies para autenticação YouTube")
+        else:
+            print(f"[Extractor] yt-dlp tentando sem autenticação")
+        
+        # Adicionar URL
+        cmd.append(video_url)
+        
         # Se headers do usuário foram fornecidos, usar como contexto
-        # (yt-dlp respeitará User-Agent e linguagem do cliente)
         if user_headers:
             cmd.extend([
                 "--http-header-fields",
@@ -84,7 +102,7 @@ def extract_and_transcribe(video_url: str, user_headers: dict = None) -> dict:
         
         if result.returncode != 0:
             error_msg = result.stderr or "Erro desconhecido"
-            print(f"[Extractor] Erro yt-dlp: {error_msg}")
+            print(f"[Extractor] Erro yt-dlp: {error_msg[:500]}")
             return {
                 "success": False,
                 "error": f"Falha no download via yt-dlp: {error_msg}",
@@ -171,6 +189,14 @@ def extract_and_transcribe(video_url: str, user_headers: dict = None) -> dict:
             "error": f"Erro interno no worker: {str(e)}",
             "videoId": video_id if 'video_id' in locals() else 'unknown'
         }
+    finally:
+        # Limpar arquivo de cookies temporário
+        if cookies_file and os.path.exists(cookies_file):
+            try:
+                os.remove(cookies_file)
+                print(f"[Extractor] Arquivo de cookies deletado: {cookies_file}")
+            except Exception as e:
+                print(f"[Extractor] Aviso: Não consegui deletar arquivo de cookies: {e}")
 
 
 @app.web_endpoint(method="POST")
@@ -179,11 +205,13 @@ def endpoint_extract_and_transcribe(request_json: dict) -> dict:
     Web endpoint que aceita POST requests.
     Payload esperado: {
         "video_url": "https://www.youtube.com/watch?v=...",
-        "user_headers": {"user-agent": "...", "accept-language": "..."}
+        "user_headers": {"user-agent": "...", "accept-language": "..."},
+        "cookies_netscape": "# Netscape HTTP Cookie File\n..."
     }
     """
     video_url = request_json.get("video_url")
     user_headers = request_json.get("user_headers", {})
+    cookies_netscape = request_json.get("cookies_netscape")
     
     if not video_url:
         return {
@@ -199,9 +227,11 @@ def endpoint_extract_and_transcribe(request_json: dict) -> dict:
         }
     
     print(f"[Endpoint] Nova requisição: {video_url}")
+    if cookies_netscape:
+        print(f"[Endpoint] Cookies fornecidas para autenticação")
     
     # Chamar função de processamento
-    result = extract_and_transcribe.remote(video_url, user_headers)
+    result = extract_and_transcribe.remote(video_url, user_headers, cookies_netscape)
     
     return result
 

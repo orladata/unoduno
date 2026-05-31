@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { YouTubeTranscriptionSchema } from '@/src/mastra/schemas/analysis';
+import { convertToNetscapeCookies, filterYoutubeCookies } from '@/lib/cookies-utils';
 
 export const maxDuration = 600; // 10 minutos (Modal worker pode levar tempo)
 export const dynamic = 'force-dynamic';
@@ -33,13 +34,22 @@ export async function POST(request: Request) {
       );
     }
 
-    const { videoUrl } = payload;
+    const { videoUrl, cookies } = payload;
 
     if (!videoUrl) {
       return NextResponse.json(
         { error: 'videoUrl é obrigatória' },
         { status: 400 }
       );
+    }
+
+    // Filtrar apenas cookies relacionadas a YouTube/Google
+    const youtubeCookies = cookies ? filterYoutubeCookies(cookies) : {};
+    
+    if (Object.keys(youtubeCookies).length > 0) {
+      console.log(`[YouTubeToTranscript] ${Object.keys(youtubeCookies).length} cookies do YouTube recebidas do cliente`);
+    } else {
+      console.warn('[YouTubeToTranscript] Nenhum cookie do YouTube fornecido - tentando sem autenticação');
     }
 
     // 2. Validar URL do YouTube
@@ -95,6 +105,7 @@ export async function POST(request: Request) {
         body: JSON.stringify({
           video_url: videoUrl,
           user_headers: userHeaders, // IP do usuário preservado
+          cookies_netscape: convertToNetscapeCookies(youtubeCookies), // Cookies em formato Netscape para yt-dlp
         }),
         signal: controller.signal,
       });
