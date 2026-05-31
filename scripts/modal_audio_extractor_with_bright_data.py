@@ -300,37 +300,39 @@ def extract_and_transcribe_with_proxy(payload: dict) -> dict:
 # WEB ENDPOINT
 # ============================================================================
 
-@app.web_endpoint(method="POST")
-def endpoint_extract_and_transcribe(request_json: dict) -> dict:
-    """
-    Web endpoint POST para processar YouTube videos.
-    
-    Payload esperado:
-    {
-        "video_url": "https://www.youtube.com/watch?v=...",
-        "cookies_netscape": "# Netscape format...",
-        "use_bright_data": true,
-        "user_headers": {"user-agent": "...", "accept-language": "..."}
-    }
-    """
-    video_url = request_json.get("video_url")
-    
-    if not video_url:
-        return {
-            "success": False,
-            "error": "Parâmetro video_url é obrigatório"
+@app.cls()
+class AudioExtractor:
+    @modal.web_endpoint(method="POST")
+    def process(self, request_json: dict) -> dict:
+        """
+        Web endpoint POST para processar YouTube videos.
+        
+        Payload esperado:
+        {
+            "video_url": "https://www.youtube.com/watch?v=...",
+            "cookies_netscape": "# Netscape format...",
+            "use_bright_data": true,
+            "user_headers": {"user-agent": "...", "accept-language": "..."}
         }
-    
-    # Validar URL
-    if not any(domain in video_url for domain in ["youtube.com", "youtu.be"]):
-        return {
-            "success": False,
-            "error": "URL não é um link válido do YouTube"
-        }
-    
-    print(f"[Endpoint] Nova requisição: {video_url}")
-    
-    # Chamar função de processamento
-    result = extract_and_transcribe_with_proxy.remote(request_json)
-    
-    return result
+        """
+        video_url = request_json.get("video_url")
+        
+        if not video_url:
+            return {
+                "success": False,
+                "error": "Parâmetro video_url é obrigatório"
+            }
+        
+        # Validar URL
+        if not any(domain in video_url for domain in ["youtube.com", "youtu.be"]):
+            return {
+                "success": False,
+                "error": "URL não é um link válido do YouTube"
+            }
+        
+        print(f"[Endpoint] Nova requisição: {video_url}")
+        
+        # Chamar função de processamento
+        result = extract_and_transcribe_with_proxy.remote(request_json)
+        
+        return result
