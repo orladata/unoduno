@@ -85,14 +85,6 @@ export const analyzeCompetitorTool = createTool({
         ],
       };
 
-      if (includeStrategyBreakdown) {
-        marketInsights.strategyDifferences = {
-          topPerformers: 'Focus on utility + story + community',
-          middlePerformers: 'Mix de formatos, menos consistency',
-          emergingPerformers: 'High frequency, experimental content',
-        };
-      }
-
       return marketInsights;
     } catch (error: any) {
       console.error(`[analyzeCompetitorTool] Erro: ${error.message}`);

@@ -57,15 +57,6 @@ export const analyzePerformanceTool = createTool({
         ],
       };
 
-      if (metricFocus?.includes('engagement')) {
-        performanceData.engagementDetails = {
-          avgComments: 500,
-          avgLikes: 5000,
-          commentSentiment: 'Positive',
-          topCommentThemes: ['Request for more', 'Appreciation', 'Questions'],
-        };
-      }
-
       return performanceData;
     } catch (error: any) {
       console.error(`[analyzePerformanceTool] Erro: ${error.message}`);

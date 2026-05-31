@@ -6,10 +6,4 @@ export const culturalTranslatorAgent = new Agent({
   name: 'Cultural Translator',
   instructions: SYSTEM_PROMPTS.culturalTranslator,
   model: 'google/gemini-2.5-pro',
-  maxSteps: 6,
-  settings: {
-    enableMemory: true,
-    enableStructuredOutput: true,
-    enableErrorRecovery: true,
-  },
 });

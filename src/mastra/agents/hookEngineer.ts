@@ -6,10 +6,4 @@ export const hookEngineerAgent = new Agent({
   name: 'Hook Engineer',
   instructions: SYSTEM_PROMPTS.hookEngineer,
   model: 'google/gemini-2.5-pro',
-  maxSteps: 8,
-  settings: {
-    enableMemory: true,
-    enableStructuredOutput: true,
-    enableErrorRecovery: true,
-  },
 });
