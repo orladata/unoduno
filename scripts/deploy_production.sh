@@ -102,7 +102,7 @@ print_header "PASSO 2: Setup Bright Data (Auto)"
 
 # Instalar dependências necessárias para o script Python
 echo "Instalando dependências Python..."
-python3 -m pip install --quiet requests
+python3 -m pip install --quiet --break-system-packages requests
 
 echo "Executando script de auto-setup..."
 python3 scripts/bright_data_setup.py \
