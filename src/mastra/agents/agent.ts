@@ -14,10 +14,4 @@ Você é um assistente AI multifuncional integrado ao Chimedeck. Sua responsabil
 
 Use autonomia inteligente para executar tarefas sem intervenção desnecessária.`,
   model: 'google/gemini-2.5-pro',
-  maxSteps: 10,
-  settings: {
-    enableMemory: true,
-    enableStructuredOutput: true,
-    enableErrorRecovery: true,
-  },
 });

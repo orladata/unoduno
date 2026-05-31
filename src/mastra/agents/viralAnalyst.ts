@@ -11,12 +11,6 @@ export const viralAnalystAgent = new Agent({
   name: 'Viral Analyst',
   instructions: SYSTEM_PROMPTS.viralAnalyst,
   model: 'google/gemini-2.5-pro',
-  maxSteps: 8,
-  settings: {
-    enableMemory: true,
-    enableStructuredOutput: true,
-    enableErrorRecovery: true,
-  },
 });
 
 export default viralAnalystAgent;

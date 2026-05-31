@@ -182,7 +182,7 @@ export class ErrorHandler {
       [ErrorType.TIMEOUT]: ErrorSeverity.MEDIUM,
       [ErrorType.UNKNOWN]: ErrorSeverity.HIGH,
     };
-    return severityMap[errorType] || ErrorSeverity.UNKNOWN;
+    return severityMap[errorType] || ErrorSeverity.CRITICAL;
   }
 
   /**
