@@ -4,49 +4,61 @@
 
 Integração completa com Bright Data para usar proxy residencial, contornando bot detection do YouTube ao fazer download de áudio. Aumenta taxa de sucesso de **70-80% → 95%+**.
 
-## Arquivos Criados/Modificados
+## Setup Automático (Recomendado)
 
-### 1. `lib/bright-data-proxy.ts`
-Módulo TypeScript que gerencia configuração e URLs do proxy:
-- `getBrightDataConfig()`: Lê credenciais do .env
-- `getBrightDataProxyUrl()`: Gera URL formato `http://user:pass@host:port`
-- `getYtDlpProxyConfig()`: Retorna flag `--proxy` para yt-dlp
-- `isBrightDataConfigured()`: Valida se credenciais estão completas
+### Opção 1: Auto-Setup via Python Script
 
-### 2. `scripts/modal_audio_extractor_with_bright_data.py`
-Worker Modal aprimorado com suporte a proxy residencial:
-- Recebe `use_bright_data: true/false` no payload
-- Configura proxy Bright Data antes de chamar yt-dlp
-- Fallback automático para download sem proxy se falhar com proxy
-- Logging detalhado de cada etapa
-- Cleanup automático de arquivos temporários
+O projeto inclui script automático que cria a zona via API Bright Data:
 
-### 3. `.env.example`
-Adicionadas variáveis para Bright Data:
 ```bash
-BRIGHT_DATA_API_KEY=<sua_chave_api>
-BRIGHT_DATA_USERNAME=<seu_username>
-BRIGHT_DATA_ZONE=<nome_da_zona>
-BRIGHT_DATA_PROXY_PORT=22225
+# Pré-requisitos
+pip install requests
+
+# Com variáveis de ambiente
+export BRIGHT_DATA_API_KEY="your_api_key"
+export BRIGHT_DATA_USERNAME="your_username"
+python scripts/bright_data_setup.py
+
+# Ou com argumentos
+python scripts/bright_data_setup.py \
+  --api-key "your_api_key" \
+  --username "your_username" \
+  --zone-name "unoduno-youtube-zone"
 ```
 
-## Setup Passo a Passo
+O script:
+- ✅ Testa conexão com API Bright Data
+- ✅ Cria zona de proxy residencial automaticamente
+- ✅ Formata credenciais para .env
+- ✅ Gera script de teste para validar
+- ✅ Salva credenciais em arquivo seguro
 
-### Passo 1: Criar Conta Bright Data
+**Saída esperada:**
+```
+Bright Data Zone Auto-Setup para YouTube Audio Extraction
+============================================================
+[Bright Data] Testando conexão com API...
+[Bright Data] ✅ Conexão bem-sucedida!
+[Bright Data] Criando zona: unoduno-youtube-zone
+[Bright Data] ✅ Zona criada com sucesso!
+[Bright Data] Zone ID: 123456789
+[Bright Data] Zone Password: abcd1234...
 
-1. Acesse https://www.brightdata.com/
-2. Clique em "Sign Up" → crie conta
-3. Confirme email
-4. Faça login no dashboard
+Credenciais para .env:
+============================================================
+BRIGHT_DATA_API_KEY=your_api_key
+BRIGHT_DATA_USERNAME=your_username
+BRIGHT_DATA_ZONE=unoduno-youtube-zone
+BRIGHT_DATA_PROXY_PORT=22225
 
-### Passo 2: Extrair Credenciais API
+✅ Credenciais salvas em: BRIGHT_DATA_CREDENTIALS.env
+✅ Teste script salvo em: scripts/test_bright_data_proxy.py
 
-1. No dashboard, clique em **Settings** (engrenagem)
-2. Vá para **API → Authentication**
-3. Copie:
-   - **Username**: Ex. `brd-customer-123456`
-   - **API Key**: Ex. `abcd1234-efgh5678-ijkl9012`
-4. Guarde em local seguro
+Próximos passos:
+1. Copie as credenciais acima para seu arquivo .env
+2. Execute o script de teste para validar o proxy
+3. Deploy o Modal Worker com as credenciais configuradas
+```
 
 ### Passo 3: Criar Zona de Proxy
 
