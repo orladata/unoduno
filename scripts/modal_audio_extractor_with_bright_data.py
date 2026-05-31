@@ -302,7 +302,7 @@ def extract_and_transcribe_with_proxy(payload: dict) -> dict:
 
 @app.cls()
 class AudioExtractor:
-    @modal.web_endpoint(method="POST")
+    @modal.fastapi_endpoint(method="POST")
     def process(self, request_json: dict) -> dict:
         """
         Web endpoint POST para processar YouTube videos.
