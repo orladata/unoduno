@@ -53,9 +53,9 @@ volume = modal.Volume.from_name("unoduno-media-cache", create_if_missing=True)
     memory=2048,
     env={
         "BRIGHT_DATA_USERNAME": os.getenv("BRIGHT_DATA_USERNAME", ""),
-        "BRIGHT_DATA_API_KEY": os.getenv("BRIGHT_DATA_API_KEY", ""),
-        "BRIGHT_DATA_ZONE": os.getenv("BRIGHT_DATA_ZONE", ""),
-        "BRIGHT_DATA_PROXY_PORT": os.getenv("BRIGHT_DATA_PROXY_PORT", "22225"),
+        "BRIGHT_DATA_PASSWORD": os.getenv("BRIGHT_DATA_PASSWORD", ""),
+        "BRIGHT_DATA_HOST": os.getenv("BRIGHT_DATA_HOST", "brd.superproxy.io"),
+        "BRIGHT_DATA_PORT": os.getenv("BRIGHT_DATA_PORT", "33335"),
     }
 )
 def extract_and_transcribe_with_proxy(payload: dict) -> dict:
@@ -123,16 +123,16 @@ def extract_and_transcribe_with_proxy(payload: dict) -> dict:
         # ====================================================================
         
         bright_data_username = os.getenv("BRIGHT_DATA_USERNAME")
-        bright_data_api_key = os.getenv("BRIGHT_DATA_API_KEY")
-        bright_data_zone = os.getenv("BRIGHT_DATA_ZONE")
-        bright_data_port = os.getenv("BRIGHT_DATA_PROXY_PORT", "22225")
+        bright_data_password = os.getenv("BRIGHT_DATA_PASSWORD")
+        bright_data_host = os.getenv("BRIGHT_DATA_HOST", "brd.superproxy.io")
+        bright_data_port = os.getenv("BRIGHT_DATA_PORT", "33335")
         
         proxy_url = None
-        if use_bright_data and bright_data_username and bright_data_api_key:
-            # Formato: http://username:password@brd.superproxy.io:port
-            proxy_url = f"http://{bright_data_username}:{bright_data_api_key}@brd.superproxy.io:{bright_data_port}"
-            print(f"[Extractor] Proxy Bright Data configurado (zona: {bright_data_zone})")
-            print(f"[Extractor] Proxy URL: http://{bright_data_username}:***@brd.superproxy.io:{bright_data_port}")
+        if bright_data_username and bright_data_password:
+            # Formato: http://username:password@host:port
+            proxy_url = f"http://{bright_data_username}:{bright_data_password}@{bright_data_host}:{bright_data_port}"
+            print(f"[Extractor] Proxy Bright Data configurado (residencial)")
+            print(f"[Extractor] Proxy: {bright_data_host}:{bright_data_port}")
         else:
             print(f"[Extractor] Bright Data não configurado - usando conexão direta")
         
