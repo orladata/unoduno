@@ -3,6 +3,7 @@ import { spawn } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
+import { createR2Service } from '@/lib/cloudflare-r2';
 
 export const maxDuration = 300; // 5 minutos para download
 export const dynamic = 'force-dynamic';
@@ -162,14 +163,51 @@ export async function POST(request: Request) {
     const processingTime = (Date.now() - startTime) / 1000;
     console.log(`[YouTubeDownload] Tempo total: ${processingTime.toFixed(2)}s`);
 
-    // 9. Retornar JSON com áudio em base64
+    // 9. Extrair video ID da URL
+    const videoIdMatch = videoUrl.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&\n?#]+)/);
+    const videoId = videoIdMatch?.[1] || 'unknown';
+
+    // 10. Upload para Cloudflare R2 (se configurado)
+    let r2Url: string | null = null;
+    try {
+      if (
+        process.env.CLOUDFLARE_R2_ACCOUNT_ID &&
+        process.env.CLOUDFLARE_R2_ACCESS_KEY_ID &&
+        process.env.CLOUDFLARE_R2_SECRET_ACCESS_KEY
+      ) {
+        console.log('[YouTubeDownload] Fazendo upload para Cloudflare R2...');
+        const r2 = createR2Service();
+        const fileName = `audio/${videoId}/${Date.now()}.mp3`;
+        
+        const uploadResult = await r2.uploadFile(audioBuffer, {
+          key: fileName,
+          contentType: 'audio/mpeg',
+          metadata: {
+            videoId,
+            uploadedAt: new Date().toISOString(),
+            videoUrl,
+          },
+        });
+
+        r2Url = uploadResult.url;
+        console.log(`[YouTubeDownload] ✅ Upload R2 concluído: ${r2Url}`);
+      }
+    } catch (r2Error) {
+      console.warn('[YouTubeDownload] ⚠️ Erro ao fazer upload R2 (continuando):', r2Error);
+      // Continuar mesmo se R2 falhar - base64 ainda será retornado
+    }
+
+    // 11. Retornar JSON com áudio em base64 e URL do R2
     return NextResponse.json({
       success: true,
+      videoId,
       audioBase64,
       audioSizeBytes,
       audioFormat: 'audio/mpeg',
       bitrate: '48kbps',
       processingTimeSeconds: processingTime,
+      r2Url, // URL do arquivo no R2 (se upload foi bem-sucedido)
+      storageMethod: r2Url ? 'cloudflare_r2' : 'base64_only',
     }, {
       status: 200,
       headers: {
@@ -207,7 +245,7 @@ export async function GET(request: Request) {
     status: 'ok',
     endpoint: '/api/youtube/download',
     method: 'POST',
-    description: 'Faz download de áudio YouTube usando Bright Data proxy e retorna em base64',
+    description: 'Faz download de áudio YouTube usando Bright Data proxy com suporte a Cloudflare R2',
     usage: {
       payload: {
         videoUrl: 'string (obrigatório) - Link do YouTube',
@@ -218,11 +256,14 @@ export async function GET(request: Request) {
     },
     response: {
       success: 'boolean',
+      videoId: 'string - ID do vídeo YouTube',
       audioBase64: 'string - Áudio em base64 (48kbps MP3)',
       audioSizeBytes: 'number - Tamanho em bytes',
       audioFormat: 'string - Formato MIME (audio/mpeg)',
       bitrate: 'string - Bitrate do áudio',
       processingTimeSeconds: 'number - Tempo de processamento',
+      r2Url: 'string (opcional) - URL pública no Cloudflare R2',
+      storageMethod: 'string - "cloudflare_r2" ou "base64_only"',
     },
   });
 }
