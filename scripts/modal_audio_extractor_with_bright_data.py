@@ -190,23 +190,39 @@ def extract_and_transcribe_with_proxy(payload: dict) -> dict:
         
         if result.returncode != 0:
             error_msg = result.stderr or "Erro desconhecido"
+            print(f"[Extractor] ⚠️ Primeira tentativa falhou")
+            print(f"[Extractor] Erro: {error_msg[:300]}")
             
-            # Verificar se é erro de bot detection mesmo com proxy
-            if "Sign in to confirm" in error_msg or "not a bot" in error_msg:
-                print(f"[Extractor] ⚠️ Bot detection mesmo com proxy - tentando sem proxy")
-                # Retry sem proxy como fallback
-                cmd_no_proxy = [c for c in cmd if c not in ["--proxy", proxy_url]]
+            # TENTATIVA 2: Se falhar, tentar SEM cookies (proxy é suficiente)
+            if cookies_file and ("cookies are no longer valid" in error_msg or "not a bot" in error_msg):
+                print(f"[Extractor] Cookies expirados - tentando SEM cookies (apenas proxy)...")
+                cmd_no_cookies = [c for c in cmd if c not in ["--cookies", cookies_file]]
                 result = subprocess.run(
-                    cmd_no_proxy,
+                    cmd_no_cookies,
                     capture_output=True,
                     text=True,
                     timeout=300
                 )
                 
+                # TENTATIVA 3: Se ainda falhar com proxy, adicionar argumentos específicos
+                if result.returncode != 0 and proxy_url:
+                    print(f"[Extractor] Proxy não foi suficiente - adicionando args de bypass...")
+                    cmd_bypass = cmd_no_cookies + [
+                        "--extractor-args", "youtube:player_client=web"
+                    ]
+                    result = subprocess.run(
+                        cmd_bypass,
+                        capture_output=True,
+                        text=True,
+                        timeout=300
+                    )
+                
                 if result.returncode != 0:
-                    raise Exception(f"Falha mesmo sem proxy: {result.stderr[:200]}")
+                    error_msg = result.stderr or "Erro desconhecido"
+                    print(f"[Extractor] ❌ Todas as tentativas falharam")
+                    raise Exception(f"yt-dlp error após todas tentativas: {error_msg[:300]}")
             else:
-                raise Exception(f"yt-dlp error: {error_msg[:200]}")
+                raise Exception(f"yt-dlp error: {error_msg[:300]}")
         
         # Validar que arquivo foi criado
         if not os.path.exists(audio_path):
