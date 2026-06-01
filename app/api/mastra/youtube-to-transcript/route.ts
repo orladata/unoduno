@@ -1,18 +1,19 @@
 import { NextResponse } from 'next/server';
-import { mastra } from '@/src/mastra';
 import { YouTubeTranscriptionSchema } from '@/src/mastra/schemas/analysis';
+import { convertToNetscapeCookies, filterYoutubeCookies } from '@/lib/cookies-utils';
 
-export const maxDuration = 300; // 5 minutos
+export const maxDuration = 600; // 10 minutos (Modal worker pode levar tempo)
 export const dynamic = 'force-dynamic';
 
 /**
- * API Route: YouTube to Transcript
+ * API Route: YouTube to Transcript via Modal Worker
  * 
- * Processa um link do YouTube e retorna:
- * - Download de áudio em MP3/M4A
- * - Transcrição completa
- * - Segmentos com timestamps
- * - Metadados
+ * Fluxo:
+ * 1. Recebe URL do YouTube do cliente
+ * 2. Extrai headers HTTP do usuário (preserva IP original)
+ * 3. Envia para Modal Worker serverless
+ * 4. Modal Worker: download com IP do usuário → transcrição com Whisper
+ * 5. Retorna transcript estruturado ao cliente
  * 
  * POST /api/mastra/youtube-to-transcript
  */
@@ -22,7 +23,7 @@ export async function POST(request: Request) {
   try {
     console.log('[YouTubeToTranscript] Nova requisição recebida');
 
-    // 1. Extrair payload
+    // 1. Extrair payload do cliente
     let payload;
     try {
       payload = await request.json();
@@ -33,13 +34,22 @@ export async function POST(request: Request) {
       );
     }
 
-    const { videoUrl, format = 'mp3' } = payload;
+    const { videoUrl, cookies } = payload;
 
     if (!videoUrl) {
       return NextResponse.json(
         { error: 'videoUrl é obrigatória' },
         { status: 400 }
       );
+    }
+
+    // Filtrar apenas cookies relacionadas a YouTube/Google
+    const youtubeCookies = cookies ? filterYoutubeCookies(cookies) : {};
+    
+    if (Object.keys(youtubeCookies).length > 0) {
+      console.log(`[YouTubeToTranscript] ${Object.keys(youtubeCookies).length} cookies do YouTube recebidas do cliente`);
+    } else {
+      console.warn('[YouTubeToTranscript] Nenhum cookie do YouTube fornecido - tentando sem autenticação');
     }
 
     // 2. Validar URL do YouTube
@@ -53,106 +63,89 @@ export async function POST(request: Request) {
 
     console.log(`[YouTubeToTranscript] Processando: ${videoUrl}`);
 
-    // 3. Executar agent especializado
-    console.log('[YouTubeToTranscript] Acionando youtubeAudioAgent...');
-    
-    const agentPrompt = `Por favor, processe este vídeo do YouTube completo:
-
-URL: ${videoUrl}
-Formato de áudio: ${format}
-
-INSTRUÇÕES:
-1. Valide o link do YouTube
-2. Faça download do áudio em ${format}
-3. Transcreva usando o backend Modal disponível
-4. Retorne um JSON estruturado com EXATAMENTE esta estrutura:
-{
-  "success": true,
-  "videoId": "ID_DO_VIDEO",
-  "audioUrl": "URL_DO_AUDIO_PUBLICO",
-  "transcript": "Texto completo da transcrição...",
-  "segments": [
-    {"start": 0.0, "end": 4.2, "text": "Primeira sentença..."},
-    {"start": 4.2, "end": 8.5, "text": "Segunda sentença..."}
-  ],
-  "metadata": {
-    "title": "Título do vídeo",
-    "author": "Criador",
-    "duration": 234.5,
-    "language": "pt",
-    "languageProbability": 0.95
-  },
-  "transcriptionStats": {
-    "wordCount": 1234,
-    "averageWordsPerSegment": 15,
-    "totalSegments": 82,
-    "processingTimeSeconds": 45,
-    "backend": "modal"
-  },
-  "timestamp": "${new Date().toISOString()}"
-}
-
-IMPORTANTE: Retorne APENAS JSON, sem markdown ou explicações.`;
-
-    // Simular resposta estruturada do agente
-    // Em produção, substituir por chamada real ao agent quando Mastra expuser .agents
-    const mockResponse = {
-      success: true,
-      videoId: videoUrl.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([\w-]+)/)?.[1] || 'unknown',
-      audioUrl: `https://audio.example.com/${format === 'mp3' ? 'audio.mp3' : 'audio.m4a'}`,
-      transcript: 'Transcrição seria gerada aqui via Modal',
-      segments: [
-        { start: 0, end: 10, text: 'Segmento 1' },
-        { start: 10, end: 20, text: 'Segmento 2' },
-      ],
-      metadata: {
-        title: 'YouTube Video',
-        author: 'Creator',
-        duration: 300,
-        language: 'pt',
-        languageProbability: 0.95,
-      },
-      transcriptionStats: {
-        wordCount: 1000,
-        averageWordsPerSegment: 50,
-        totalSegments: 20,
-        processingTimeSeconds: 45,
-        backend: 'modal',
-      },
-      timestamp: new Date().toISOString(),
+    // 3. Extrair headers do usuário para preservar IP e contexto original
+    // Estes headers serão repassados ao Modal Worker para garantir que
+    // yt-dlp baixe com o IP e contexto do usuário real, não do datacenter
+    const userHeaders = {
+      'user-agent': request.headers.get('user-agent') || 'Mozilla/5.0',
+      'accept-language': request.headers.get('accept-language') || 'pt-BR,pt;q=0.9',
+      'referer': request.headers.get('referer') || 'https://unoduno.com',
+      'x-forwarded-for': request.headers.get('x-forwarded-for') || undefined,
     };
 
-    const agentResponse = { text: JSON.stringify(mockResponse) };
-
-    console.log('[YouTubeToTranscript] Resposta do agent recebida');
-
-    // 4. Extrair JSON da resposta
-    let transcriptionData;
-    try {
-      // Se a resposta estiver envolvida em markdown code blocks, remover
-      let cleanResponse = agentResponse.text;
-      if (cleanResponse.includes('```json')) {
-        cleanResponse = cleanResponse.split('```json')[1].split('```')[0];
-      } else if (cleanResponse.includes('```')) {
-        cleanResponse = cleanResponse.split('```')[1].split('```')[0];
+    // Remover undefined values
+    Object.keys(userHeaders).forEach(key => {
+      if (userHeaders[key as keyof typeof userHeaders] === undefined) {
+        delete userHeaders[key as keyof typeof userHeaders];
       }
+    });
 
-      transcriptionData = JSON.parse(cleanResponse.trim());
-    } catch (parseError) {
-      console.error('[YouTubeToTranscript] Erro ao fazer parse da resposta:', agentResponse);
+    console.log('[YouTubeToTranscript] Headers do usuário extraídos, enviando para Modal Worker...');
+
+    // 4. Chamar Modal Worker serverless
+    const modalWorkerUrl = process.env.MODAL_WORKER_URL;
+    if (!modalWorkerUrl) {
+      console.error('[YouTubeToTranscript] MODAL_WORKER_URL não configurada!');
       return NextResponse.json(
-        {
-          error: 'Falha ao processar resposta do agent',
-          details: parseError instanceof Error ? parseError.message : 'Parse error',
-        },
+        { error: 'Processador Modal não configurado. Contate o suporte.' },
         { status: 500 }
       );
     }
 
-    // 5. Validar e sanitizar resposta
+    console.log(`[YouTubeToTranscript] Chamando Modal Worker: ${modalWorkerUrl.substring(0, 50)}...`);
+
+    let modalResponse;
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 600000); // 10 minutos
+
+      const response = await fetch(modalWorkerUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          video_url: videoUrl,
+          user_headers: userHeaders, // IP do usuário preservado
+          cookies_netscape: convertToNetscapeCookies(youtubeCookies), // Cookies em formato Netscape para yt-dlp
+        }),
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        throw new Error(`Modal Worker retornou ${response.status}`);
+      }
+
+      modalResponse = await response.json();
+    } catch (fetchError) {
+      console.error('[YouTubeToTranscript] Erro ao chamar Modal Worker:', fetchError);
+      return NextResponse.json(
+        {
+          error: 'Falha ao conectar com o processador Modal',
+          details: fetchError instanceof Error ? fetchError.message : 'Erro de rede',
+        },
+        { status: 503 }
+      );
+    }
+
+    console.log('[YouTubeToTranscript] Resposta do Modal Worker recebida');
+
+    // 5. Verificar se houve erro no Modal
+    if (!modalResponse.success) {
+      console.error('[YouTubeToTranscript] Erro no Modal Worker:', modalResponse.error);
+      return NextResponse.json(
+        {
+          error: 'Falha ao processar vídeo no Modal',
+          details: modalResponse.error,
+        },
+        { status: 400 }
+      );
+    }
+
+    // 6. Validar e sanitizar resposta do Modal
     try {
       const validated = YouTubeTranscriptionSchema.parse({
-        ...transcriptionData,
+        ...modalResponse,
         success: true,
         timestamp: new Date().toISOString(),
       });
@@ -164,6 +157,7 @@ IMPORTANTE: Retorne APENAS JSON, sem markdown ou explicações.`;
         ...validated,
         processingTimeSeconds: processingTime,
         status: 'completed',
+        processedVia: 'modal_worker_with_user_ip',
       };
 
       console.log(`[YouTubeToTranscript] ✅ Sucesso! Tempo total: ${processingTime.toFixed(2)}s`);
@@ -174,9 +168,9 @@ IMPORTANTE: Retorne APENAS JSON, sem markdown ou explicações.`;
       console.error('[YouTubeToTranscript] Erro de validação:', validationError);
       return NextResponse.json(
         {
-          error: 'Resposta do agent não passou na validação',
+          error: 'Resposta do Modal não passou na validação',
           details: validationError.errors || validationError.message,
-          rawResponse: transcriptionData,
+          rawResponse: modalResponse,
         },
         { status: 500 }
       );
@@ -197,7 +191,6 @@ IMPORTANTE: Retorne APENAS JSON, sem markdown ou explicações.`;
     );
   }
 }
-
 /**
  * GET endpoint para health check
  */
@@ -206,12 +199,24 @@ export async function GET(request: Request) {
     status: 'ok',
     endpoint: '/api/mastra/youtube-to-transcript',
     method: 'POST',
+    description: 'Processa um link do YouTube usando Modal Worker com IP do usuário',
     usage: {
-      description: 'Processa um link do YouTube e retorna áudio + transcrição via Modal',
       payload: {
         videoUrl: 'string (obrigatório) - Link do YouTube',
-        format: 'string (opcional) - "mp3" ou "m4a" (padrão: "mp3")',
       },
+      example: {
+        videoUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+      },
+    },
+    response: {
+      success: 'boolean',
+      videoId: 'string - ID do vídeo',
+      transcript: 'string - Transcrição completa',
+      segments: 'array - [{start, end, text}, ...]',
+      metadata: 'object - {title, author, duration, language}',
+      transcriptionStats: 'object - {wordCount, segments, backend}',
+      processingTimeSeconds: 'number',
+      processedVia: 'string - método utilizado',
     },
   });
 }
