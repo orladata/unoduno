@@ -105,21 +105,39 @@ class CloudflareR2Service {
       const response = await this.client.send(command);
 
       // Converter stream para buffer
-      const chunks = [];
-      if (response.Body instanceof ReadableStream) {
-        const reader = response.Body.getReader();
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          chunks.push(value);
+      const chunks: Uint8Array[] = [];
+      
+      if (response.Body) {
+        // S3 Body pode ser um stream Node.js ou Web Stream
+        const stream = response.Body as any;
+        
+        if (typeof stream[Symbol.asyncIterator] === 'function') {
+          // É um stream iterável
+          for await (const chunk of stream) {
+            chunks.push(
+              chunk instanceof Uint8Array ? chunk : new Uint8Array(chunk)
+            );
+          }
+        } else if (stream.getReader) {
+          // É um ReadableStream web
+          const reader = stream.getReader();
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            chunks.push(value);
+          }
+        } else if (stream.read) {
+          // É um stream Node.js
+          let chunk;
+          while ((chunk = stream.read()) !== null) {
+            chunks.push(
+              chunk instanceof Uint8Array ? chunk : new Uint8Array(chunk)
+            );
+          }
         }
-      } else {
-        chunks.push(new Uint8Array(await response.Body?.arrayBuffer?.()));
       }
 
-      const buffer = new Uint8Array(
-        chunks.reduce((acc, chunk) => [...acc, ...chunk], [])
-      );
+      const buffer = Buffer.concat(chunks);
 
       console.log(`[R2] ✅ Download concluído: ${key} (${buffer.length} bytes)`);
 

@@ -10,10 +10,10 @@ export const dynamic = 'force-dynamic';
  */
 export async function GET(
   request: Request,
-  { params }: { params: { videoId: string } }
+  { params }: { params: Promise<{ videoId: string }> }
 ) {
   try {
-    const { videoId } = await Promise.resolve(params);
+    const { videoId } = await params;
 
     if (!videoId) {
       return NextResponse.json(
