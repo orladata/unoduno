@@ -84,10 +84,6 @@ export function useYoutubeTranscription(options: UseYoutubeTranscriptionOptions 
         options.onProgress?.('download', 50);
         setProgress(50);
 
-        // Converter response para Blob
-        const audioBlob = await downloadResponse.blob();
-        console.log(`[Transcription] Tamanho do arquivo: ${(audioBlob.size / 1024 / 1024).toFixed(2)}MB`);
-
         // ====================================================================
         // ETAPA 2: Transcrição (Modal Worker recebe apenas áudio)
         // ====================================================================
@@ -96,14 +92,24 @@ export function useYoutubeTranscription(options: UseYoutubeTranscriptionOptions 
         options.onProgress?.('transcription', 60);
         setProgress(60);
 
-        // Criar FormData
-        const formData = new FormData();
-        formData.append('audio', audioBlob, 'audio.mp3');
-        formData.append('videoId', videoId);
+        // Converter response JSON para audioBase64
+        const downloadData = await downloadResponse.json();
+        if (!downloadData.success || !downloadData.audioBase64) {
+          throw new Error('Download não retornou áudio válido');
+        }
 
+        const { audioBase64, audioSizeBytes } = downloadData;
+        console.log(`[Transcription] Tamanho do arquivo: ${(audioSizeBytes / 1024 / 1024).toFixed(2)}MB`);
+
+        // Enviar áudio em base64 para transcrição
         const transcribeResponse = await fetch('/api/youtube/transcribe', {
           method: 'POST',
-          body: formData,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            videoId,
+            audioBase64,
+            audioFormat: 'audio/mpeg',
+          }),
         });
 
         if (!transcribeResponse.ok) {

@@ -141,34 +141,41 @@ export async function POST(request: Request) {
     const fileSizeMB = fs.statSync(audioFilePath).size / (1024 * 1024);
     console.log(`[YouTubeDownload] ✅ Download concluído: ${fileSizeMB.toFixed(2)}MB`);
 
-    // 7. Retornar arquivo como stream
-    const fileStream = fs.createReadStream(audioFilePath);
+    // 7. Ler arquivo e converter para base64
+    console.log('[YouTubeDownload] Convertendo para base64...');
+    const audioBuffer = fs.readFileSync(audioFilePath);
+    const audioBase64 = audioBuffer.toString('base64');
+    const audioSizeBytes = audioBuffer.length;
 
-    const response = new NextResponse(fileStream, {
-      status: 200,
-      headers: {
-        'Content-Type': 'audio/mpeg',
-        'Content-Length': fs.statSync(audioFilePath).size.toString(),
-        'Cache-Control': 'no-cache, no-store, must-revalidate',
-      },
-    });
+    console.log(`[YouTubeDownload] ✅ Base64 pronto: ${audioSizeBytes} bytes`);
 
-    // 8. Cleanup após resposta (não bloqueia)
-    setImmediate(() => {
-      try {
-        if (tempDir && fs.existsSync(tempDir)) {
-          fs.rmSync(tempDir, { recursive: true, force: true });
-          console.log(`[YouTubeDownload] Diretório temporário deletado`);
-        }
-      } catch (err) {
-        console.error('[YouTubeDownload] Erro ao limpar temporário:', err);
+    // 8. Cleanup imediato
+    try {
+      if (tempDir && fs.existsSync(tempDir)) {
+        fs.rmSync(tempDir, { recursive: true, force: true });
+        console.log(`[YouTubeDownload] Diretório temporário deletado`);
       }
-    });
+    } catch (err) {
+      console.error('[YouTubeDownload] Erro ao limpar temporário:', err);
+    }
 
     const processingTime = (Date.now() - startTime) / 1000;
     console.log(`[YouTubeDownload] Tempo total: ${processingTime.toFixed(2)}s`);
 
-    return response;
+    // 9. Retornar JSON com áudio em base64
+    return NextResponse.json({
+      success: true,
+      audioBase64,
+      audioSizeBytes,
+      audioFormat: 'audio/mpeg',
+      bitrate: '48kbps',
+      processingTimeSeconds: processingTime,
+    }, {
+      status: 200,
+      headers: {
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+      },
+    });
 
   } catch (error: any) {
     console.error('[YouTubeDownload] Erro:', error.message);
@@ -200,7 +207,7 @@ export async function GET(request: Request) {
     status: 'ok',
     endpoint: '/api/youtube/download',
     method: 'POST',
-    description: 'Faz download de áudio YouTube usando Bright Data proxy',
+    description: 'Faz download de áudio YouTube usando Bright Data proxy e retorna em base64',
     usage: {
       payload: {
         videoUrl: 'string (obrigatório) - Link do YouTube',
@@ -209,6 +216,13 @@ export async function GET(request: Request) {
         videoUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
       },
     },
-    response: 'MP3 audio stream (audio/mpeg)',
+    response: {
+      success: 'boolean',
+      audioBase64: 'string - Áudio em base64 (48kbps MP3)',
+      audioSizeBytes: 'number - Tamanho em bytes',
+      audioFormat: 'string - Formato MIME (audio/mpeg)',
+      bitrate: 'string - Bitrate do áudio',
+      processingTimeSeconds: 'number - Tempo de processamento',
+    },
   });
 }
