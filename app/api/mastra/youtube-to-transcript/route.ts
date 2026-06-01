@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { YouTubeTranscriptionSchema } from '@/src/mastra/schemas/analysis';
 import { convertToNetscapeCookies, filterYoutubeCookies } from '@/lib/cookies-utils';
 
-export const maxDuration = 600; // 10 minutos (Modal worker pode levar tempo)
+export const maxDuration = 300; // 5 minutos (máximo Hobby plan)
 export const dynamic = 'force-dynamic';
 
 /**
