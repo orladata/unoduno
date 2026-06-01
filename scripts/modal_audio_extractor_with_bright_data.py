@@ -65,8 +65,6 @@ def extract_and_transcribe_with_proxy(payload: dict) -> dict:
     Args:
         payload: {
             "video_url": str,
-            "cookies_netscape": str (IGNORADO - não necessário com proxy residencial),
-            "use_bright_data": bool (sempre True),
             "user_headers": dict (opcional)
         }
     
@@ -82,7 +80,7 @@ def extract_and_transcribe_with_proxy(payload: dict) -> dict:
         }
     
     Nota: Usa APENAS Bright Data proxy residencial para contornar bot detection.
-    Cookies são ignorados pois não são necessários e expiram rapidamente.
+    IP residencial do proxy é suficiente - não precisa de cookies que expiram.
     """
     import whisper
     
