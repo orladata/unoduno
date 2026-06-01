@@ -34,7 +34,7 @@ from datetime import datetime
 image = (
     modal.Image.debian_slim()
     .apt_install("ffmpeg", "curl", "wget")
-    .pip_install("yt-dlp", "openai-whisper", "requests")
+    .pip_install("yt-dlp", "openai-whisper", "requests", "fastapi")
 )
 
 app = modal.App("unoduno-audio-extractor-bright-data", image=image)
