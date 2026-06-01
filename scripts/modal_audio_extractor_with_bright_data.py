@@ -60,13 +60,13 @@ volume = modal.Volume.from_name("unoduno-media-cache", create_if_missing=True)
 )
 def extract_and_transcribe_with_proxy(payload: dict) -> dict:
     """
-    Processa YouTube video: download via proxy + transcrição Whisper.
+    Processa YouTube video: download via BRIGHT DATA PROXY APENAS + transcrição Whisper.
     
     Args:
         payload: {
             "video_url": str,
-            "cookies_netscape": str (opcional),
-            "use_bright_data": bool (padrão: True),
+            "cookies_netscape": str (IGNORADO - não necessário com proxy residencial),
+            "use_bright_data": bool (sempre True),
             "user_headers": dict (opcional)
         }
     
@@ -80,13 +80,13 @@ def extract_and_transcribe_with_proxy(payload: dict) -> dict:
             "stats": dict,
             "error": str (se falhar)
         }
+    
+    Nota: Usa APENAS Bright Data proxy residencial para contornar bot detection.
+    Cookies são ignorados pois não são necessários e expiram rapidamente.
     """
     import whisper
     
     video_url = payload.get("video_url")
-    cookies_netscape = payload.get("cookies_netscape")
-    use_bright_data = payload.get("use_bright_data", True)
-    user_headers = payload.get("user_headers", {})
     
     if not video_url:
         return {
@@ -97,29 +97,15 @@ def extract_and_transcribe_with_proxy(payload: dict) -> dict:
     # Extrair video ID
     video_id = video_url.split('=')[-1].split('&')[0] if '=' in video_url else 'unknown'
     audio_path = f"/data/audio_{video_id}.mp3"
-    cookies_file = None
     start_time = datetime.now()
     
     try:
-        print(f"\n[Extractor] ===== INICIANDO PROCESSAMENTO =====")
-        print(f"[Extractor] Video ID: {video_id}")
+        print(f"\n[Extractor] ===== PROCESSAMENTO: {video_id} =====")
         print(f"[Extractor] URL: {video_url}")
-        print(f"[Extractor] Bright Data: {'ATIVADO' if use_bright_data else 'DESABILITADO'}")
+        print(f"[Extractor] Modo: BRIGHT DATA PROXY APENAS (sem cookies)")
         
         # ====================================================================
-        # 1. SALVAR COOKIES EM ARQUIVO NETSCAPE
-        # ====================================================================
-        
-        if cookies_netscape:
-            with tempfile.NamedTemporaryFile(mode='w', suffix='.txt', delete=False) as f:
-                f.write(cookies_netscape)
-                cookies_file = f.name
-            print(f"[Extractor] Cookies salvos: {cookies_file}")
-        else:
-            print(f"[Extractor] Nenhum cookie fornecido (tentará sem autenticação)")
-        
-        # ====================================================================
-        # 2. CONFIGURAR PROXY BRIGHT DATA
+        # CONFIGURAR BRIGHT DATA PROXY RESIDENCIAL
         # ====================================================================
         
         bright_data_username = os.getenv("BRIGHT_DATA_USERNAME")
@@ -127,130 +113,80 @@ def extract_and_transcribe_with_proxy(payload: dict) -> dict:
         bright_data_host = os.getenv("BRIGHT_DATA_HOST", "brd.superproxy.io")
         bright_data_port = os.getenv("BRIGHT_DATA_PORT", "33335")
         
-        proxy_url = None
-        if bright_data_username and bright_data_password:
-            # Formato: http://username:password@host:port
-            proxy_url = f"http://{bright_data_username}:{bright_data_password}@{bright_data_host}:{bright_data_port}"
-            print(f"[Extractor] Proxy Bright Data configurado (residencial)")
-            print(f"[Extractor] Proxy: {bright_data_host}:{bright_data_port}")
-        else:
-            print(f"[Extractor] Bright Data não configurado - usando conexão direta")
+        if not (bright_data_username and bright_data_password):
+            return {
+                "success": False,
+                "error": "Bright Data não configurado (BRIGHT_DATA_USERNAME e PASSWORD obrigatórios)",
+                "videoId": video_id,
+            }
+        
+        proxy_url = f"http://{bright_data_username}:{bright_data_password}@{bright_data_host}:{bright_data_port}"
+        print(f"[Extractor] ✅ Proxy: {bright_data_host}:{bright_data_port} (IP residencial)")
         
         # ====================================================================
-        # 3. CONSTRUIR COMANDO yt-dlp
+        # EXECUTAR yt-dlp COM BRIGHT DATA PROXY (SEM COOKIES)
         # ====================================================================
         
         cmd = [
             "yt-dlp",
             "-x",  # Extrair apenas áudio
             "--audio-format", "mp3",
-            "--audio-quality", "48",  # 48kbps
-            "-o", audio_path,
-        ]
-        
-        # Adicionar proxy se configurado
-        if proxy_url:
-            cmd.extend(["--proxy", proxy_url])
-            print(f"[Extractor] Usando proxy residencial para bypass de bot detection")
-        
-        # Adicionar cookies se fornecidos
-        if cookies_file:
-            cmd.extend(["--cookies", cookies_file])
-            print(f"[Extractor] Usando cookies para autenticação YouTube")
-        
-        # Adicionar headers do usuário se fornecidos
-        if user_headers:
-            for key, value in user_headers.items():
-                if value:
-                    cmd.extend(["--add-header", f"{key}:{value}"])
-        
-        # Adicionar opções para evitar rate limiting
-        cmd.extend([
+            "--audio-quality", "48",  # 48kbps para arquivo pequeno
+            "--proxy", proxy_url,  # BRIGHT DATA PROXY RESIDENCIAL
             "--socket-timeout", "30",
             "--retries", "3",
             "--fragment-retries", "3",
-        ])
+            "-o", audio_path,
+            video_url
+        ]
         
-        # URL deve ser o último argumento
-        cmd.append(video_url)
-        
-        print(f"[Extractor] Comando yt-dlp: {' '.join(cmd[:8])}... (com proxy/cookies/headers)")
-        
-        # ====================================================================
-        # 4. EXECUTAR yt-dlp COM PROXY
-        # ====================================================================
-        
-        print(f"[Extractor] Iniciando download via yt-dlp + Bright Data proxy...")
-        result = subprocess.run(
-            cmd,
-            capture_output=True,
-            text=True,
-            timeout=300
-        )
+        print(f"[Extractor] Iniciando download com yt-dlp + Bright Data proxy...")
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=300)
         
         if result.returncode != 0:
             error_msg = result.stderr or "Erro desconhecido"
-            print(f"[Extractor] ⚠️ Primeira tentativa falhou")
-            print(f"[Extractor] Erro: {error_msg[:300]}")
-            
-            # TENTATIVA 2: Se falhar, tentar SEM cookies (proxy é suficiente)
-            if cookies_file and ("cookies are no longer valid" in error_msg or "not a bot" in error_msg):
-                print(f"[Extractor] Cookies expirados - tentando SEM cookies (apenas proxy)...")
-                cmd_no_cookies = [c for c in cmd if c not in ["--cookies", cookies_file]]
-                result = subprocess.run(
-                    cmd_no_cookies,
-                    capture_output=True,
-                    text=True,
-                    timeout=300
-                )
-                
-                # TENTATIVA 3: Se ainda falhar com proxy, adicionar argumentos específicos
-                if result.returncode != 0 and proxy_url:
-                    print(f"[Extractor] Proxy não foi suficiente - adicionando args de bypass...")
-                    cmd_bypass = cmd_no_cookies + [
-                        "--extractor-args", "youtube:player_client=web"
-                    ]
-                    result = subprocess.run(
-                        cmd_bypass,
-                        capture_output=True,
-                        text=True,
-                        timeout=300
-                    )
-                
-                if result.returncode != 0:
-                    error_msg = result.stderr or "Erro desconhecido"
-                    print(f"[Extractor] ❌ Todas as tentativas falharam")
-                    raise Exception(f"yt-dlp error após todas tentativas: {error_msg[:300]}")
-            else:
-                raise Exception(f"yt-dlp error: {error_msg[:300]}")
+            print(f"[Extractor] ❌ Download falhou: {error_msg[:300]}")
+            return {
+                "success": False,
+                "error": f"yt-dlp error: {error_msg}",
+                "videoId": video_id,
+            }
         
         # Validar que arquivo foi criado
         if not os.path.exists(audio_path):
-            raise Exception("Arquivo de áudio não foi criado")
+            return {
+                "success": False,
+                "error": "Arquivo de áudio não foi criado",
+                "videoId": video_id,
+            }
         
         file_size_mb = os.path.getsize(audio_path) / (1024 * 1024)
-        print(f"[Extractor] ✅ Download completo: {file_size_mb:.2f}MB @ 48kbps")
+        print(f"[Extractor] ✅ Download OK: {file_size_mb:.2f}MB @ 48kbps")
         
         # ====================================================================
-        # 5. TRANSCREVER COM WHISPER
+        # TRANSCREVER COM WHISPER
         # ====================================================================
         
-        print(f"[Extractor] Carregando modelo Whisper...")
-        model = whisper.load_model("base", device="cpu")  # Use GPU se disponível
+        print(f"[Extractor] Carregando Whisper modelo...")
+        model = whisper.load_model("base", device="cpu")
         
-        print(f"[Extractor] Transcrevendo áudio...")
+        print(f"[Extractor] Transcrevendo...")
         result = model.transcribe(audio_path, language="pt", verbose=False)
         
         transcript = result.get("text", "")
         segments = result.get("segments", [])
         
         if not transcript:
-            raise Exception("Nenhuma transcrição foi gerada")
+            return {
+                "success": False,
+                "error": "Whisper não conseguiu transcrever",
+                "videoId": video_id,
+            }
         
-        print(f"[Extractor] ✅ Transcrição completa: {len(transcript)} caracteres, {len(segments)} segmentos")
+        print(f"[Extractor] ✅ Transcrição OK: {len(transcript)} caracteres")
         
         # ====================================================================
-        # 6. CONSTRUIR RESPOSTA ESTRUTURADA
+        # CONSTRUIR RESPOSTA
         # ====================================================================
         
         elapsed_seconds = (datetime.now() - start_time).total_seconds()
@@ -269,48 +205,37 @@ def extract_and_transcribe_with_proxy(payload: dict) -> dict:
             ],
             "metadata": {
                 "title": "YouTube Video",
-                "duration": None,
                 "language": "pt",
                 "processedAt": datetime.now().isoformat(),
             },
             "stats": {
                 "wordCount": len(transcript.split()),
-                "totalSegments": len(segments),
-                "processingTimeSeconds": elapsed_seconds,
-                "audioFileSizeMB": file_size_mb,
-                "backend": "whisper",
-                "proxy": "bright_data" if proxy_url else "none",
+                "segmentCount": len(segments),
+                "processingTimeSeconds": round(elapsed_seconds, 2),
+                "audioFileSizeMB": round(file_size_mb, 2),
+                "processor": "whisper",
+                "proxy": "bright_data_residential",
             },
         }
         
-        print(f"[Extractor] ===== PROCESSAMENTO COMPLETO =====")
-        print(f"[Extractor] Tempo total: {elapsed_seconds:.2f}s")
-        print(f"[Extractor] Status: SUCCESS ✅")
+        print(f"[Extractor] ===== SUCESSO ✅ =====")
+        print(f"[Extractor] Tempo: {elapsed_seconds:.1f}s | Palavras: {len(transcript.split())}")
         
         return response
     
     except subprocess.TimeoutExpired:
         return {
             "success": False,
-            "error": "Timeout: processamento excedeu 300 segundos",
+            "error": "Timeout: download excedeu 300 segundos",
             "videoId": video_id,
         }
     except Exception as e:
-        error_msg = str(e)
-        print(f"[Extractor] ❌ ERRO: {error_msg}")
+        print(f"[Extractor] ❌ ERRO: {str(e)}")
         return {
             "success": False,
-            "error": error_msg,
+            "error": str(e),
             "videoId": video_id,
         }
-    finally:
-        # Limpeza
-        if cookies_file and os.path.exists(cookies_file):
-            try:
-                os.remove(cookies_file)
-                print(f"[Extractor] Arquivo de cookies deletado")
-            except Exception as e:
-                print(f"[Extractor] Aviso: Não consegui deletar cookies file: {e}")
 
 # ============================================================================
 # WEB ENDPOINT
