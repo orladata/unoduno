@@ -123,8 +123,7 @@ const nextConfig = {
   // EXPERIMENTAL FEATURES
   // ============================================================================
   
-  // Type-safe routes (moved from experimental in Next.js 16)
-  typedRoutes: true,
+  // Type-safe routes removed due to dynamic router.push type errors
   
   // ============================================================================
   // REDIRECTS & REWRITES

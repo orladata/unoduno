@@ -1,19 +1,17 @@
 import { NextResponse } from 'next/server';
 import { YouTubeTranscriptionSchema } from '@/src/mastra/schemas/analysis';
-import { convertToNetscapeCookies, filterYoutubeCookies } from '@/lib/cookies-utils';
 
-export const maxDuration = 600; // 10 minutos (Modal worker pode levar tempo)
+export const maxDuration = 300; // 5 minutos (Vercel Hobby plan limit)
 export const dynamic = 'force-dynamic';
 
 /**
- * API Route: YouTube to Transcript via Modal Worker
+ * API Route: YouTube to Transcript via Cerebrium
  * 
- * Fluxo:
  * 1. Recebe URL do YouTube do cliente
- * 2. Extrai headers HTTP do usuário (preserva IP original)
- * 3. Envia para Modal Worker serverless
- * 4. Modal Worker: download com IP do usuário → transcrição com Whisper
- * 5. Retorna transcript estruturado ao cliente
+ * 2. Envia payload para Cerebrium API (Serverless GPU)
+ * 3. Cerebrium: Faz download anônimo com proxy residencial
+ * 4. Cerebrium: Transcreve, faz upload do JSON pro R2 e devolve a r2_url
+ * 5. Retorna transcript estruturado e a URL pública para o cliente
  * 
  * POST /api/mastra/youtube-to-transcript
  */
@@ -34,22 +32,13 @@ export async function POST(request: Request) {
       );
     }
 
-    const { videoUrl, cookies } = payload;
+    const { videoUrl } = payload;
 
     if (!videoUrl) {
       return NextResponse.json(
         { error: 'videoUrl é obrigatória' },
         { status: 400 }
       );
-    }
-
-    // Filtrar apenas cookies relacionadas a YouTube/Google
-    const youtubeCookies = cookies ? filterYoutubeCookies(cookies) : {};
-    
-    if (Object.keys(youtubeCookies).length > 0) {
-      console.log(`[YouTubeToTranscript] ${Object.keys(youtubeCookies).length} cookies do YouTube recebidas do cliente`);
-    } else {
-      console.warn('[YouTubeToTranscript] Nenhum cookie do YouTube fornecido - tentando sem autenticação');
     }
 
     // 2. Validar URL do YouTube
@@ -63,49 +52,28 @@ export async function POST(request: Request) {
 
     console.log(`[YouTubeToTranscript] Processando: ${videoUrl}`);
 
-    // 3. Extrair headers do usuário para preservar IP e contexto original
-    // Estes headers serão repassados ao Modal Worker para garantir que
-    // yt-dlp baixe com o IP e contexto do usuário real, não do datacenter
-    const userHeaders = {
-      'user-agent': request.headers.get('user-agent') || 'Mozilla/5.0',
-      'accept-language': request.headers.get('accept-language') || 'pt-BR,pt;q=0.9',
-      'referer': request.headers.get('referer') || 'https://unoduno.com',
-      'x-forwarded-for': request.headers.get('x-forwarded-for') || undefined,
-    };
-
-    // Remover undefined values
-    Object.keys(userHeaders).forEach(key => {
-      if (userHeaders[key as keyof typeof userHeaders] === undefined) {
-        delete userHeaders[key as keyof typeof userHeaders];
-      }
-    });
-
-    console.log('[YouTubeToTranscript] Headers do usuário extraídos, enviando para Modal Worker...');
-
-    // 4. Chamar Modal Worker serverless
-    const modalWorkerUrl = process.env.MODAL_WORKER_URL;
-    if (!modalWorkerUrl) {
-      console.error('[YouTubeToTranscript] MODAL_WORKER_URL não configurada!');
+    // 3. Chamar API Cerebrium Serverless
+    const cerebriumUrl = process.env.CEREBRIUM_API_URL || 'https://api.aws.us-east-1.cerebrium.ai/v4/p-2cd4cd4c/unoduno-transcriber/run';
+    if (!cerebriumUrl) {
+      console.error('[YouTubeToTranscript] CEREBRIUM_API_URL não configurada!');
       return NextResponse.json(
-        { error: 'Processador Modal não configurado. Contate o suporte.' },
+        { error: 'Processador Cerebrium não configurado. Contate o suporte.' },
         { status: 500 }
       );
     }
 
-    console.log(`[YouTubeToTranscript] Chamando Modal Worker: ${modalWorkerUrl.substring(0, 50)}...`);
+    console.log(`[YouTubeToTranscript] Chamando Cerebrium API: ${cerebriumUrl.substring(0, 50)}...`);
 
-    let modalResponse;
+    let cerebriumResponse;
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 600000); // 10 minutos
+      const timeoutId = setTimeout(() => controller.abort(), 600000); // 10 minutos (GPUs costumam resolver em 10s)
 
-      const response = await fetch(modalWorkerUrl, {
+      const response = await fetch(cerebriumUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          video_url: videoUrl,
-          user_headers: userHeaders, // IP do usuário preservado
-          cookies_netscape: convertToNetscapeCookies(youtubeCookies), // Cookies em formato Netscape para yt-dlp
+          video_url: videoUrl
         }),
         signal: controller.signal,
       });
@@ -113,39 +81,42 @@ export async function POST(request: Request) {
       clearTimeout(timeoutId);
 
       if (!response.ok) {
-        throw new Error(`Modal Worker retornou ${response.status}`);
+        throw new Error(`Cerebrium API retornou ${response.status}`);
       }
 
-      modalResponse = await response.json();
+      const rawResponse = await response.json();
+      
+      // O Cerebrium encapsula os retornos em { "run_id": "...", "result": {...} }
+      cerebriumResponse = rawResponse.result;
     } catch (fetchError) {
-      console.error('[YouTubeToTranscript] Erro ao chamar Modal Worker:', fetchError);
+      console.error('[YouTubeToTranscript] Erro ao chamar Cerebrium API:', fetchError);
       return NextResponse.json(
         {
-          error: 'Falha ao conectar com o processador Modal',
+          error: 'Falha ao conectar com o processador de GPU (Cerebrium)',
           details: fetchError instanceof Error ? fetchError.message : 'Erro de rede',
         },
         { status: 503 }
       );
     }
 
-    console.log('[YouTubeToTranscript] Resposta do Modal Worker recebida');
+    console.log('[YouTubeToTranscript] Resposta do Cerebrium recebida');
 
-    // 5. Verificar se houve erro no Modal
-    if (!modalResponse.success) {
-      console.error('[YouTubeToTranscript] Erro no Modal Worker:', modalResponse.error);
+    // 4. Verificar se houve erro no script da Cerebrium
+    if (!cerebriumResponse.success) {
+      console.error('[YouTubeToTranscript] Erro na Cerebrium:', cerebriumResponse.error);
       return NextResponse.json(
         {
-          error: 'Falha ao processar vídeo no Modal',
-          details: modalResponse.error,
+          error: 'Falha ao processar vídeo na GPU',
+          details: cerebriumResponse.error,
         },
         { status: 400 }
       );
     }
 
-    // 6. Validar e sanitizar resposta do Modal
+    // 5. Validar e sanitizar resposta da Cerebrium
     try {
       const validated = YouTubeTranscriptionSchema.parse({
-        ...modalResponse,
+        ...cerebriumResponse,
         success: true,
         timestamp: new Date().toISOString(),
       });
@@ -157,7 +128,7 @@ export async function POST(request: Request) {
         ...validated,
         processingTimeSeconds: processingTime,
         status: 'completed',
-        processedVia: 'modal_worker_with_user_ip',
+        processedVia: 'cerebrium_gpu',
       };
 
       console.log(`[YouTubeToTranscript] ✅ Sucesso! Tempo total: ${processingTime.toFixed(2)}s`);
@@ -168,9 +139,9 @@ export async function POST(request: Request) {
       console.error('[YouTubeToTranscript] Erro de validação:', validationError);
       return NextResponse.json(
         {
-          error: 'Resposta do Modal não passou na validação',
+          error: 'Resposta da Cerebrium não passou na validação Zod',
           details: validationError.errors || validationError.message,
-          rawResponse: modalResponse,
+          rawResponse: cerebriumResponse,
         },
         { status: 500 }
       );
@@ -194,7 +165,7 @@ export async function POST(request: Request) {
 /**
  * GET endpoint para health check
  */
-export async function GET(request: Request) {
+export async function GET() {
   return NextResponse.json({
     status: 'ok',
     endpoint: '/api/mastra/youtube-to-transcript',

@@ -32,7 +32,7 @@ export function useChatAPI(): UseChatReturn {
         setMessages((prev) => [...prev, userMessage])
 
         const controller = new AbortController()
-        const timeoutId = setTimeout(() => controller.abort(), 120000) // 2 minutes timeout
+        const timeoutId = setTimeout(() => controller.abort(), 300000) // 5 minutes timeout
 
         try {
           const response = await fetch('/api/chat', {

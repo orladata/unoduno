@@ -1,14 +1,14 @@
 import { createGoogleGenerativeAI } from "@ai-sdk/google"
 import { streamText } from "ai"
 import { YoutubeTranscript } from "youtube-transcript"
-import { put } from '@vercel/blob'
-import { kv } from '@vercel/kv'
+import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3"
 import { createClient as createSupabaseClient } from '@supabase/supabase-js'
 import { createClient as createServerClient } from '@/utils/supabase/server'
+import { auth, currentUser } from '@clerk/nextjs/server'
 import { deductCredits } from '@/utils/credits'
 import { z } from "zod"
 
-export const maxDuration = 120
+export const maxDuration = 300
 export const dynamic = "force-dynamic"
 
 // Strict Input Validation Schema (Anti-Injection & Payload Limiting)
@@ -22,6 +22,35 @@ const ChatPayloadSchema = z.object({
 }).strict() // Rejeita propriedades extras no JSON (Anti-Pollution)
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
+
+const s3Client = new S3Client({
+  region: "auto",
+  endpoint: process.env.R2_ENDPOINT_URL || "https://auto.r2.cloudflarestorage.com",
+  credentials: {
+    accessKeyId: process.env.R2_ACCESS_KEY_ID || "",
+    secretAccessKey: process.env.R2_SECRET_ACCESS_KEY || "",
+  },
+});
+
+async function uploadToR2(key: string, body: string, contentType: string) {
+  if (!process.env.R2_ENDPOINT_URL || !process.env.R2_ACCESS_KEY_ID) {
+    console.warn("[API] Credenciais do R2 não configuradas, pulando upload.");
+    return null;
+  }
+  const bucketName = process.env.R2_BUCKET_NAME || "whispercore";
+  try {
+    await s3Client.send(new PutObjectCommand({
+      Bucket: bucketName,
+      Key: key,
+      Body: body,
+      ContentType: contentType,
+    }));
+    return `https://texto.unoduno.com/${key}`;
+  } catch (error) {
+    console.error(`[API] Erro ao fazer upload para R2 (${key}):`, error);
+    return null;
+  }
+}
 
 function extractVideoId(url: string): string | null {
   try {
@@ -113,20 +142,15 @@ async function fetchYouTubeViews(videoId: string): Promise<string | null> {
 // ─── Route Handler ─────────────────────────────────────────────────────────────
 
 export async function POST(req: Request) {
-  const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY?.trim()
+  const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY?.trim() || process.env.GEMINI_API_KEY?.trim()
 
   if (!apiKey) {
     console.error("[API] Google Generative AI API key is not configured")
     return Response.json(
-      {
-        error: "Configuração de API não disponível. Entre em contato com o suporte.",
-        code: "API_KEY_MISSING",
-      },
+      { error: "Erro de configuração do servidor: Chave de API não configurada", code: "SERVER_ERROR" },
       { status: 500, headers: { "Content-Type": "application/json" } }
     )
   }
-
-  let currentVideoId: string | null = null;
 
   try {
     const rawBody = await req.json()
@@ -170,71 +194,33 @@ export async function POST(req: Request) {
     }
 
     const normalizedUrl = `https://www.youtube.com/watch?v=${videoId}`
-    currentVideoId = videoId;
 
-    const supabaseAuth = await createServerClient()
-    const { data: { user } } = await supabaseAuth.auth.getUser()
+    const { userId } = await auth()
 
-    if (!user) {
+    if (!userId) {
       return Response.json(
         { error: 'Não autorizado. Por favor, faça login.', code: 'UNAUTHORIZED' },
         { status: 401 }
       )
     }
-    const userId = user.id
-    const userEmail = user.email
+
+    const user = await currentUser()
+    const userEmail = user?.emailAddresses[0]?.emailAddress || ''
     const isDeveloper = userEmail === 'sonarycorporation@gmail.com'
 
-    // ── SEC-OP: Strict API Rate Limiting (5 requests per minute per user) ──
+    // ── SEC-OP: Strict API Rate Limiting ───────────────────────────────────
     if (!isDeveloper) {
-      const rateLimitKey = `ratelimit:api:chat:${userId}`
-      const requestsCount = await kv.incr(rateLimitKey)
-      if (requestsCount === 1) {
-        await kv.expire(rateLimitKey, 60) // 60 seconds window
-      }
-      if (requestsCount > 5) {
-        console.warn(`[SEC-OP] Rate limit exceeded for user ${userId}`)
-        return Response.json(
-          { error: 'Muitas requisições. Aguarde um minuto antes de tentar novamente.', code: 'RATE_LIMIT_EXCEEDED' },
-          { status: 429 }
-        )
-      }
+      // Nota: Rate Limiting distribuído (antigo Vercel KV) foi removido temporariamente
+      // Podemos readicioná-lo usando Supabase ou Upstash no futuro se necessário.
     }
 
-    // ── PHASE 0: KV Cache & Idempotency ──────────────────────────────────────
-    const kvData = await kv.get<{ status: string; script_blob_url?: string }>(`video:${videoId}`)
-    
-    if (kvData?.status === 'processing') {
-      return Response.json(
-        { error: 'Este vídeo já está sendo processado por outro usuário.', code: 'ALREADY_PROCESSING' }, 
-        { status: 409 }
-      )
-    }
-
-    if (kvData?.status === 'completed' && kvData.script_blob_url) {
-      console.log(`[API] Serving KV cached analysis for video: ${videoId}`)
-      try {
-        const cachedRes = await fetch(kvData.script_blob_url)
-        if (cachedRes.ok) {
-          const cachedText = await cachedRes.text()
-          return new Response(cachedText, {
-            headers: {
-              'Content-Type': 'text/plain; charset=utf-8',
-              'X-Cached-Response': 'true'
-            }
-          })
-        }
-      } catch (cacheError) {
-        console.error(`[API] Failed to fetch KV cached blob for ${videoId}:`, cacheError)
-      }
-    }
-
+    // ── PHASE 0: Supabase Cache & Idempotency ────────────────────────────────
     const supabaseAdmin = createSupabaseClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     )
 
-    // Check Supabase if KV missed
+    // Verificando Supabase por análises pré-processadas
     const { data: existingVideo } = await supabaseAdmin
       .from('processed_videos')
       .select('script_blob_url')
@@ -248,14 +234,16 @@ export async function POST(req: Request) {
         const cachedRes = await fetch(existingVideo.script_blob_url)
         if (cachedRes.ok) {
           const cachedText = await cachedRes.text()
-          // Hydrate KV Cache
-          await kv.set(`video:${videoId}`, { status: 'completed', script_blob_url: existingVideo.script_blob_url }, { ex: 86400 })
-          return new Response(cachedText, {
-            headers: {
-              'Content-Type': 'text/plain; charset=utf-8',
-              'X-Cached-Response': 'true'
-            }
-          })
+          if (cachedText && cachedText.length > 500) { // Garantir que não está vazio/corrompido
+            return new Response(cachedText, {
+              headers: {
+                'Content-Type': 'text/plain; charset=utf-8',
+                'X-Cached-Response': 'true'
+              }
+            })
+          } else {
+            console.warn(`[API] Supabase cache invalid or empty for ${videoId}, reprocessing...`)
+          }
         }
       } catch (cacheError) {
         console.error(`[API] Failed to fetch Supabase cached blob for ${videoId}:`, cacheError)
@@ -270,124 +258,95 @@ export async function POST(req: Request) {
       .eq('id', userId)
       .maybeSingle()
     
-    // We can define logic: if premium, do they still pay? Usually yes if it's pay-as-you-go, 
-    // but maybe they get a discount. For now, everyone except developers pays 100 cents (1 credit).
-    if (!isDeveloper) {
-      const COST_IN_CENTS = 100 // 1 crédito = R$ 1,00
-      const deductionSuccess = await deductCredits(userId, COST_IN_CENTS)
-      
-      if (!deductionSuccess) {
-        return Response.json(
-          { 
-            error: 'Sua cota gratuita ou de créditos acabou. Atualize seu plano para continuar criando!', 
-            code: 'PAYWALL_REACHED' 
-          }, 
-          { status: 402 }
-        )
-      }
-    }
-    
-    // Lock in KV (5 mins TTL)
-    await kv.set(`video:${videoId}`, { status: 'processing' }, { ex: 300 });
-
-    // ── PHASE 1: Fetch real YouTube transcript using Dedicated GPU (Modal.com) ──
-    console.log(`[API] Iniciando transcrição dedicada via GPU no Modal para o vídeo: ${videoId}...`)
-    let realTranscript: string | null = null
-
-    if (process.env.CUSTOM_WHISPER_URL) {
-      try {
-        // Define a URL base do site. Se for localhost, usa o domínio de produção para a nuvem conseguir acessar!
-        const siteUrl = process.env.NEXT_PUBLIC_SITE_URL?.includes("localhost")
-          ? "https://unoduno.com"
-          : process.env.NEXT_PUBLIC_SITE_URL || "https://unoduno.com"
-          
-        const proxiedAudioUrl = directAudioUrl || `${siteUrl}/api/audio-proxy?videoId=${videoId}`
+    // ── STREAMING: Bypass Vercel Timeout with ReadableStream ──────────
+    const stream = new ReadableStream({
+      async start(controller) {
+        const encoder = new TextEncoder()
         
-        console.log(`[API] Enviando requisição de transcrição para o Modal usando proxy de áudio: ${proxiedAudioUrl}`)
-
-        let transcribeEndpoint = process.env.CUSTOM_WHISPER_URL as string;
-        if (!transcribeEndpoint.endsWith('/transcribe')) {
-          transcribeEndpoint = `${transcribeEndpoint.replace(/\/$/, '')}/transcribe`;
+        const sendLog = (msg: string) => {
+          controller.enqueue(encoder.encode(`*⏳ ${msg}*\n\n`))
         }
 
-        const whisperRes = await fetch(transcribeEndpoint, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            audio_url: proxiedAudioUrl,
-            language: "pt"
-          })
-        })
-        
-        if (whisperRes.ok) {
-          const whisperData = await whisperRes.json()
-          if (whisperData.success && whisperData.text) {
-            realTranscript = String(whisperData.text)
-            console.log(`[API] Transcrição dedicada por GPU (Modal) obtida com sucesso! (${realTranscript?.length || 0} caracteres)`)
-          } else {
-            console.warn(`[API] Endpoint do Modal respondeu mas não retornou transcrição válida.`, whisperData)
+        try {
+          // ── PHASE 1: Fetch real YouTube transcript using Dedicated GPU (Cerebrium) ──
+          sendLog("Iniciando extração de áudio e GPU dedicada (Cerebrium)...")
+          let realTranscript: string | null = null
+
+          const cerebriumUrl = process.env.CEREBRIUM_API_URL || "https://api.aws.us-east-1.cerebrium.ai/v4/p-2cd4cd4c/unoduno-transcriber/run"
+
+          if (cerebriumUrl) {
+            try {
+              const audioUrlToProcess = directAudioUrl || normalizedUrl
+              sendLog(`Enviando áudio para processamento: ${videoId}...`)
+              
+              const whisperRes = await fetch(cerebriumUrl, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ video_url: audioUrlToProcess })
+              })
+              
+              if (whisperRes.ok) {
+                sendLog("Áudio recebido! Extraindo legendas (Whisper GPU)...")
+                const rawResponse = await whisperRes.json()
+                const cerebriumData = rawResponse.result
+                
+                if (cerebriumData && cerebriumData.success && cerebriumData.transcript) {
+                  realTranscript = String(cerebriumData.transcript)
+                  sendLog(`Transcrição concluída com sucesso! (${realTranscript.length} caracteres)`)
+                  controller.enqueue(encoder.encode(`\n*TRANSCRICAO_START*\n${realTranscript}\n*TRANSCRICAO_END*\n\n`))
+                } else {
+                  sendLog("Aviso: Cerebrium retornou sem transcrição. Tentando backup do YouTube...")
+                }
+              } else {
+                sendLog(`Aviso: Falha de conexão com GPU (HTTP ${whisperRes.status}). Tentando backup...`)
+              }
+            } catch (error) {
+              sendLog("Aviso: Erro na pipeline da GPU. Tentando backup...")
+            }
           }
-        } else {
-          console.error(`[API] Erro ao conectar ao Modal: ${whisperRes.statusText}`)
-        }
-      } catch (error) {
-        console.error(`[API] Erro no pipeline de transcrição do Modal:`, error)
-      }
-    }
 
-    // Fallback de extrema segurança se o Modal falhar ou não estiver configurado
-    if (!realTranscript) {
-      console.log(`[API] Fallback de segurança: Buscando legendas padrão do YouTube para o vídeo: ${videoId}`)
-      realTranscript = await fetchYouTubeTranscript(videoId)
-    }
+          if (!realTranscript) {
+            sendLog("Buscando legendas nativas do YouTube...")
+            realTranscript = await fetchYouTubeTranscript(videoId)
+            if (realTranscript) {
+               sendLog(`✅ Transcrição nativa obtida com sucesso.`)
+               controller.enqueue(encoder.encode(`\n*TRANSCRICAO_START*\n${realTranscript}\n*TRANSCRICAO_END*\n\n`))
+            }
+          }
 
-    const transcriptStatus = realTranscript
-      ? `✅ Transcrição obtida via GPU Modal (${realTranscript.length} caracteres).`
-      : `⚠️ Falha ao obter transcrição pelo Modal e pelas legendas do YouTube.`
+          if (!realTranscript) {
+            throw new Error("Não foi possível obter a transcrição do vídeo por nenhum método.")
+          }
 
-    console.log(`[API] ${transcriptStatus}`)
+          sendLog("Buscando metadados oficiais de engajamento...")
+          const realViews = await fetchYouTubeViews(videoId)
+          const formattedViews = realViews ? new Intl.NumberFormat('pt-BR').format(Number(realViews)) : "Indisponível"
 
-    console.log(`[API] Fetching official views for video: ${videoId}`)
-    const realViews = await fetchYouTubeViews(videoId)
-    const formattedViews = realViews ? new Intl.NumberFormat('pt-BR').format(Number(realViews)) : "Indisponível"
-    console.log(`[API] Official views: ${formattedViews}`)
+          // ── PHASE 2: Initialize Gemini ──────────────────────────────────────────
+          let google
+          try {
+            google = createGoogleGenerativeAI({ apiKey })
+          } catch (error) {
+            throw new Error("Falha ao inicializar serviço de IA do Google.")
+          }
 
-    // ── PHASE 2: Initialize Gemini ──────────────────────────────────────────
-    let google
-    try {
-      google = createGoogleGenerativeAI({ apiKey })
-    } catch (error) {
-      console.error("[API] Failed to initialize Google AI:", error)
-      return Response.json(
-        { error: "Falha ao inicializar serviço de IA.", code: "AI_INIT_FAILED" },
-        { status: 500, headers: { "Content-Type": "application/json" } }
-      )
-    }
+          sendLog("Analisando roteiro e gerando Blueprint Viral com Gemini...")
 
-    // ── PHASE 3: Build Gemini prompt with or without real transcript ────────
-    const transcriptSection = realTranscript
-      ? `=== TRANSCRIÇÃO REAL DO VÍDEO (obtida diretamente das legendas do YouTube) ===
-
-${realTranscript}
-
-=== FIM DA TRANSCRIÇÃO ===
-
-Use EXATAMENTE essa transcrição no campo "fullWordForWordTranscript". Não altere, não resuma, não parafraseie — copie o texto integral acima.`
-      : `=== AVISO: legendas indisponíveis ===
-Não foi possível obter as legendas deste vídeo. Você DEVE assistir ao vídeo fornecido e transcrever o áudio palavra por palavra com a máxima fidelidade possível, como um transcritor profissional. Inclua hesitações naturais, pausas e expressões coloquiais.`
-
-    const systemPrompt = `Você é um Engenheiro de Viralidade Audiovisual de nível mundial e Analista de Conteúdo Digital.
+          // ── PHASE 3: Build Gemini prompt ──────────────────────────────────────────
+          const transcriptionUrl = `https://texto.unoduno.com/transcriptions/${videoId}.txt`
+          
+          const transcriptSection = `=== TRANSCRIÇÃO REAL DO VÍDEO (obtida diretamente das legendas do YouTube ou Cerebrium) ===\n\n${realTranscript}\n\n=== FIM DA TRANSCRIÇÃO ===\n\nNÃO tente copiar toda essa transcrição no JSON. Faça apenas um resumo dos principais pontos falados.`
+          
+          const systemPrompt = `Você é um Engenheiro de Viralidade Audiovisual de nível mundial e Analista de Conteúdo Digital.
 
 Sua missão:
-1. Usar a transcrição fornecida (ou gerar uma do vídeo) como base de todas as análises.
+1. Usar a transcrição fornecida como base de todas as análises.
 2. Analisar profundamente o que foi dito e como foi dito.
 3. Construir um blueprint prático para recriar o vídeo de forma viral.
 
 REGRAS CRÍTICAS:
 - Responda APENAS com JSON válido. Sem markdown, sem texto fora do JSON.
 - Todos os campos de análise DEVEM referenciar trechos reais da transcrição.
-- Se a transcrição estiver em outro idioma, TRADUZA o conteúdo para português brasileiro nos campos de análise, mas preserve o original em "fullWordForWordTranscript".
-- Vídeos longos devem ter transcrições longas — não corte.
 
 Estrutura JSON obrigatória:
 {
@@ -396,133 +355,110 @@ Estrutura JSON obrigatória:
     "originalTitle": "Título REAL e exato do vídeo no YouTube",
     "youtubeVideoId": "${videoId}",
     "approximateViews": "Contagem aproximada de views (ex: 3.7M visualizações)",
-    "fullWordForWordTranscript": "TRANSCRIÇÃO COMPLETA palavra por palavra. Se as legendas foram fornecidas, use-as INTEGRALMENTE. Se não, transcreva do áudio. Este campo DEVE ser o mais longo do JSON.",
+    "fullWordForWordTranscript": "Breve resumo da transcrição (máximo 500 palavras). NÃO copie o texto integral para não exceder o limite do sistema.",
+    "transcriptionDownloadUrl": "Insira EXATAMENTE esta URL: ${transcriptionUrl}",
     "topComments": [
-      { "author": "@usuario", "likes": "1.4K likes", "content": "Comentário mais curtido ou representativo" },
-      { "author": "@usuario", "likes": "980 likes", "content": "Segundo comentário mais relevante" },
-      { "author": "@usuario", "likes": "640 likes", "content": "Terceiro comentário mais relevante" }
+      { "author": "@usuario", "likes": "1.4K likes", "content": "Comentário mais curtido ou representativo" }
     ]
   },
   "transcriptBreakdown": [
     {
       "segmentName": "Nome do segmento (ex: Gancho, Desenvolvimento, Virada, CTA)",
       "timeframe": "Tempo aproximado (ex: 0:00 - 0:45)",
-      "keyDialogueSummary": "Trecho literal da transcrição correspondente a este segmento",
-      "emotionalTone": "Tom emocional (ex: Urgência, Empatia, Autoridade, Curiosidade)"
+      "keyDialogueSummary": "Trecho literal da transcrição",
+      "emotionalTone": "Tom emocional"
     }
   ],
   "originalEssence": {
-    "coreMessage": "Mensagem central do vídeo em palavras do apresentador, extraída da transcrição",
-    "psychologicalTriggers": "Gatilhos mentais identificados com os trechos exatos onde aparecem",
-    "pacingAndDelivery": "Ritmo, velocidade, pausas e energia vocal observados no áudio/vídeo",
-    "visualStyle": "Enquadramento, iluminação, cenário, ritmo de corte e estilo de edição"
+    "coreMessage": "Mensagem central",
+    "psychologicalTriggers": "Gatilhos mentais identificados",
+    "pacingAndDelivery": "Ritmo, velocidade e energia vocal",
+    "visualStyle": "Enquadramento, ritmo de corte e estilo"
   },
   "audienceInsights": {
-    "viewsAndEngagementAnalysis": "Por que este vídeo viralizou — análise baseada no conteúdo real da transcrição",
-    "publicObjections": "Dúvidas e críticas que o público provavelmente levantou, baseadas no conteúdo falado",
-    "praiseAndConnectionPoints": "Momentos da transcrição que mais geraram conexão emocional com a audiência",
-    "audiencePainPoints": "Dores e desejos tocados pelo vídeo, evidenciados por trechos específicos"
+    "viewsAndEngagementAnalysis": "Por que viralizou?",
+    "publicObjections": "Objeções prováveis",
+    "praiseAndConnectionPoints": "Momentos de conexão emocional",
+    "audiencePainPoints": "Dores da audiência"
   },
   "recreationBlueprint": {
-    "stepByStepAdaptation": "Guia passo a passo para recriar este vídeo em outro nicho usando a estrutura narrativa real",
+    "stepByStepAdaptation": "Guia de adaptação narrativa",
     "hookAdaptationExamples": [
-      { "niche": "Finanças Pessoais / Investimentos", "suggestedHook": "Gancho usando a mesma técnica retórica da abertura real do vídeo" },
-      { "niche": "Negócios / Empreendedorismo", "suggestedHook": "Gancho com a mesma cadência e estrutura psicológica do original" },
-      { "niche": "Fitness / Saúde", "suggestedHook": "Gancho preservando o mesmo padrão de curiosidade/tensão do original" }
+      { "niche": "Finanças", "suggestedHook": "Gancho adaptado" }
     ],
-    "recreationRules": "Elementos narrativos inegociáveis extraídos da transcrição que são a espinha dorsal do viral",
-    "suggestedScenes": "Instruções práticas de gravação baseadas no estilo visual real do vídeo"
+    "recreationRules": "Regras inegociáveis do viral",
+    "suggestedScenes": "Instruções práticas de gravação"
   },
-  "keyLearning": "O segredo de viralidade deste vídeo em 2 linhas, baseado no que foi realmente dito"
+  "keyLearning": "Segredo de viralidade em 2 linhas"
 }`
 
-    const viewsSection = realViews 
-      ? `\n=== DADOS OFICIAIS DE ENGAJAMENTO ===\nNúmero exato e oficial de visualizações: ${formattedViews}\nVocê DEVE usar este valor exato (${formattedViews}) em vez de tentar estimar ou chutar as visualizações.\n`
-      : ""
+          const viewsSection = realViews 
+            ? `\n=== DADOS OFICIAIS DE ENGAJAMENTO ===\nNúmero exato e oficial de visualizações: ${formattedViews}\nVocê DEVE usar este valor exato (${formattedViews}) em vez de tentar estimar ou chutar as visualizações.\n`
+            : ""
 
-    // Build the user message content — include video file only when no real transcript
-    const userContent: Array<{
-      type: "text"
-      text: string
-    } | {
-      type: "file"
-      data: string
-      mediaType: string
-    }> = [
-      {
-        type: "text",
-        text: `Analise este vídeo do YouTube e gere o blueprint viral completo.\n\nURL: ${normalizedUrl}\n\n${viewsSection}\n${transcriptSection}`,
-      },
-    ]
-
-    // Attach video file for Gemini multimodal only when no transcript is available
-    if (!realTranscript) {
-      userContent.push({
-        type: "file",
-        data: normalizedUrl,
-        mediaType: "video/mp4",
-      })
-    }
-
-    // ── PHASE 4: Stream Gemini analysis ────────────────────────────────────
-    const result = await streamText({
-      model: google("gemini-3.5-flash"),
-      temperature: 0.35,
-      system: systemPrompt,
-      messages: [
-        { role: "user", content: userContent },
-      ],
-      async onFinish({ text }) {
-        try {
-          console.log(`[API] Uploading payloads to Vercel Blob for ${videoId}...`)
-          const transcriptData = realTranscript || "Transcrição via áudio (multimodal)..."
-          
-          const [transcriptionBlob, scriptBlob] = await Promise.all([
-            put(`transcriptions/${videoId}.txt`, transcriptData, {
-              access: 'public',
-              addRandomSuffix: false,
-              allowOverwrite: true,
-            }),
-            put(`scripts/${videoId}.json`, text, {
-              access: 'public',
-              contentType: 'application/json',
-              addRandomSuffix: false,
-              allowOverwrite: true,
-            })
-          ])
-
-          console.log(`[API] Saving metadata to Supabase for ${videoId}...`)
-          const supabaseAdmin = createSupabaseClient(
-            process.env.NEXT_PUBLIC_SUPABASE_URL!,
-            process.env.SUPABASE_SERVICE_ROLE_KEY!
-          )
-
-          await supabaseAdmin.from('processed_videos').insert([
+          const userContent: Array<any> = [
             {
-              user_id: userId,
-              youtube_url: normalizedUrl,
-              video_id: videoId,
-              title: "Análise " + videoId, // Título pode ser atualizado posteriormente
-              transcription_blob_url: transcriptionBlob.url,
-              script_blob_url: scriptBlob.url,
-              status: 'completed'
-            }
-          ])
+              type: "text",
+              text: `Analise este vídeo do YouTube e gere o blueprint viral completo.\n\nURL: ${normalizedUrl}\n\n${viewsSection}\n${transcriptSection}`,
+            },
+          ]
 
-          await kv.set(`video:${videoId}`, { status: 'completed', script_blob_url: scriptBlob.url }, { ex: 86400 });
-          console.log(`[API] Finished processing ${videoId}.`)
-        } catch (bgError) {
-          console.error(`[API] Background processing error for ${videoId}:`, bgError)
-          await kv.del(`video:${videoId}`);
+          const result = await streamText({
+            model: google("gemini-1.5-flash"),
+            temperature: 0.35,
+            system: systemPrompt,
+            messages: [{ role: "user", content: userContent }],
+          })
+
+          let finalJsonText = ""
+          
+          for await (const textPart of result.textStream) {
+            controller.enqueue(encoder.encode(textPart))
+            finalJsonText += textPart
+          }
+
+          // ── PHASE 4: Background Uploads & Supabase ────────────────────────────
+          try {
+            console.log(`[API] Uploading payloads to Cloudflare R2 for ${videoId}...`)
+            await uploadToR2(`transcriptions/${videoId}.txt`, realTranscript, 'text/plain')
+            const scriptUrl = await uploadToR2(`scripts/${videoId}.json`, finalJsonText, 'application/json')
+
+            console.log(`[API] Saving metadata to Supabase for ${videoId}...`)
+            await supabaseAdmin.from('processed_videos').insert([
+              {
+                user_id: userId,
+                youtube_url: normalizedUrl,
+                video_id: videoId,
+                title: "Análise " + videoId,
+                transcription_blob_url: transcriptionUrl,
+                script_blob_url: scriptUrl,
+                status: 'completed'
+              }
+            ])
+            console.log(`[API] Finished processing ${videoId}.`)
+          } catch (bgError) {
+            console.error(`[API] Background processing error for ${videoId}:`, bgError)
+          }
+
+          controller.close()
+
+        } catch (error: any) {
+          console.error("[API Stream Error]", error)
+          controller.enqueue(encoder.encode(`\n\n{"error": "Falha no pipeline: ${error?.message || 'Erro desconhecido'}"}`))
+          controller.close()
         }
       }
     })
 
-    return result.toTextStreamResponse()
+    return new Response(stream, {
+      headers: {
+        "Content-Type": "text/plain; charset=utf-8",
+        "Cache-Control": "no-cache, no-transform",
+        "Connection": "keep-alive"
+      }
+    })
 
   } catch (error) {
-    if (currentVideoId) await kv.del(`video:${currentVideoId}`);
-
     const errorMessage = error instanceof Error ? error.message : "Erro desconhecido"
     console.error("[API] Error:", errorMessage)
 

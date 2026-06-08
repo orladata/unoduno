@@ -105,7 +105,6 @@ export function HeroSection(): React.ReactElement {
       const redirectTimeout = setTimeout(() => {
         try {
           const analysisUrl = buildAnalysisUrl(validation.data)
-          // @ts-expect-error - dynamic URL with query params
           router.push(analysisUrl)
         } catch (err) {
           updateForm({ type: "SET_ERROR", payload: "Erro ao processar URL" })
@@ -180,9 +179,9 @@ export function HeroSection(): React.ReactElement {
           variants={itemVariants}
           className="text-5xl md:text-7xl lg:text-[6rem] font-black tracking-tighter leading-[1.05] mb-6 text-balance text-transparent bg-clip-text bg-gradient-to-b from-white via-white/90 to-white/60 animate-in fade-in zoom-in duration-1000"
         >
-          Onde o viral
+          Engenharia de conteúdo
           <br />
-          <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-300 via-indigo-300 to-violet-300">se torna seu.</span>
+          <span className="text-transparent bg-clip-text bg-gradient-to-r from-slate-300 via-slate-100 to-white">impulsionada por IA.</span>
         </motion.h1>
 
         {/* Subtext */}
@@ -190,7 +189,7 @@ export function HeroSection(): React.ReactElement {
           variants={itemVariants}
           className="max-w-2xl mx-auto text-base md:text-lg leading-relaxed mb-12 text-slate-400"
         >
-          Cole qualquer URL do YouTube e deixe nossos agentes neurais criarem o roteiro perfeito para o mercado brasileiro — com ganchos virais e precisão de retenção.
+          Cole qualquer URL do YouTube. Nossa plataforma processa o vídeo e gera roteiros otimizados e adaptados para o seu mercado com alta precisão técnica.
         </motion.p>
 
         {/* Input + CTA */}
@@ -257,9 +256,9 @@ export function HeroSection(): React.ReactElement {
                 setIsViralModalOpen(true)
                 if (typeof navigator !== "undefined" && navigator.vibrate) navigator.vibrate(50)
               }}
-              className="px-4 py-1.5 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 text-[12px] font-medium text-slate-200 transition-colors active:scale-95 flex items-center gap-2 shadow-[0_0_15px_rgba(255,255,255,0.05)] hover:border-emerald-500/30"
+              className="px-4 py-1.5 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 text-[12px] font-medium text-slate-200 transition-colors active:scale-95 flex items-center gap-2 shadow-[0_0_15px_rgba(255,255,255,0.05)] hover:border-slate-500/30"
             >
-              <span className="text-red-500">🔥</span> Ver vídeos em alta hoje
+              <span>Explorar vídeos em alta</span>
             </button>
           </motion.div>
 

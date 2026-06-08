@@ -153,21 +153,24 @@ export default function LoginPage() {
           </motion.div>
 
           <form onSubmit={handleSubmit(handleAuthAction)} className="flex flex-col gap-4">
-            <motion.div layout="position" className="flex flex-col gap-1.5">
-              <label className="text-[11px] font-semibold text-white/60 ml-1 uppercase tracking-wider" htmlFor="email">
-                E-mail
-              </label>
+            <motion.div layout="position" className="relative">
               <input
                 {...register("email")}
-                className={`px-4 py-3 bg-white/5 border ${errors.email ? 'border-red-500/50 focus:ring-red-500/20' : 'border-white/10 hover:border-white/20 focus:border-violet-500/50 focus:ring-violet-500/10'} rounded-xl text-sm text-white placeholder-white/20 focus:outline-none focus:ring-2 transition-all`}
+                className={`peer w-full px-4 pt-5 pb-2 bg-white/5 border ${errors.email ? 'border-red-500/50 focus:border-red-500' : 'border-white/10 hover:border-white/20 focus:border-violet-500/50'} rounded-xl text-sm text-white placeholder-transparent focus:outline-none transition-all`}
                 id="email"
                 type="email"
-                placeholder="exemplo@exemplo.com"
+                placeholder="E-mail"
                 disabled={isPending}
               />
+              <label 
+                htmlFor="email"
+                className="absolute left-4 top-1 text-[10px] font-bold text-white/40 uppercase tracking-widest transition-all peer-placeholder-shown:text-[13px] peer-placeholder-shown:text-white/30 peer-placeholder-shown:top-3.5 peer-placeholder-shown:normal-case peer-placeholder-shown:tracking-normal peer-focus:text-[10px] peer-focus:text-violet-400 peer-focus:top-1 peer-focus:uppercase peer-focus:tracking-widest cursor-text"
+              >
+                E-mail
+              </label>
               <AnimatePresence>
                 {errors.email && (
-                  <motion.span initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="text-[11px] text-red-400 ml-1 font-medium">{errors.email.message}</motion.span>
+                  <motion.span initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="text-[11px] text-red-400 ml-1 mt-1 font-medium block">{errors.email.message}</motion.span>
                 )}
               </AnimatePresence>
             </motion.div>
@@ -179,37 +182,41 @@ export default function LoginPage() {
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.95 }}
                   transition={{ duration: 0.2 }}
-                  className="flex flex-col gap-1.5"
+                  className="relative"
                 >
-                  <div className="flex justify-between items-center px-1">
-                    <label className="text-[11px] font-semibold text-white/60 uppercase tracking-wider" htmlFor="password">
-                      Senha
-                    </label>
-                    {!isSignUp && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setIsForgotPassword(true)
-                          setCustomError(null)
-                          setCustomSuccess(null)
-                        }}
-                        className="text-[10px] text-violet-400 hover:text-violet-300 transition-colors font-medium cursor-pointer"
-                      >
-                        Esqueceu sua senha?
-                      </button>
-                    )}
-                  </div>
                   <input
                     {...register("password")}
-                    className={`px-4 py-3 bg-white/5 border ${errors.password ? 'border-red-500/50 focus:ring-red-500/20' : 'border-white/10 hover:border-white/20 focus:border-violet-500/50 focus:ring-violet-500/10'} rounded-xl text-sm text-white placeholder-white/20 focus:outline-none focus:ring-2 transition-all`}
+                    className={`peer w-full px-4 pt-5 pb-2 bg-white/5 border ${errors.password ? 'border-red-500/50 focus:border-red-500' : 'border-white/10 hover:border-white/20 focus:border-violet-500/50'} rounded-xl text-sm text-white placeholder-transparent focus:outline-none transition-all pr-12`}
                     id="password"
                     type="password"
-                    placeholder="••••••••"
+                    placeholder="Senha"
                     disabled={isPending}
                   />
+                  <label 
+                    htmlFor="password"
+                    className="absolute left-4 top-1 text-[10px] font-bold text-white/40 uppercase tracking-widest transition-all peer-placeholder-shown:text-[13px] peer-placeholder-shown:text-white/30 peer-placeholder-shown:top-3.5 peer-placeholder-shown:normal-case peer-placeholder-shown:tracking-normal peer-focus:text-[10px] peer-focus:text-violet-400 peer-focus:top-1 peer-focus:uppercase peer-focus:tracking-widest cursor-text"
+                  >
+                    Senha
+                  </label>
+                  
+                  {/* Forgot Password Link inside the input box on desktop/mobile */}
+                  {!isSignUp && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsForgotPassword(true)
+                        setCustomError(null)
+                        setCustomSuccess(null)
+                      }}
+                      className="absolute right-3 top-3.5 text-[10px] text-white/30 hover:text-white transition-colors font-medium cursor-pointer uppercase tracking-wider"
+                    >
+                      Esqueceu?
+                    </button>
+                  )}
+                  
                   <AnimatePresence>
                     {errors.password && (
-                      <motion.span initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="text-[11px] text-red-400 ml-1 font-medium">{errors.password.message}</motion.span>
+                      <motion.span initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="text-[11px] text-red-400 ml-1 mt-1 font-medium block">{errors.password.message}</motion.span>
                     )}
                   </AnimatePresence>
                 </motion.div>

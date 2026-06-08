@@ -148,13 +148,13 @@ export function BentoSection() {
       >
         {/* Title */}
         <motion.div variants={itemVariants} className="text-center mb-20">
-          <p className="text-[11px] tracking-[0.2em] uppercase mb-4 font-bold text-violet-400">
-            A Vantagem Injusta
+          <p className="text-[11px] tracking-[0.2em] uppercase mb-4 font-bold text-slate-400">
+            Recursos Principais
           </p>
           <h2 className="font-black text-4xl md:text-5xl lg:text-7xl tracking-tighter text-balance mb-4 text-white leading-[1.05]">
-            Tudo que você precisa
+            Plataforma integrada
             <br />
-            <span className="text-slate-500">para dominar o feed.</span>
+            <span className="text-slate-500">para gestão de conteúdo.</span>
           </h2>
         </motion.div>
 

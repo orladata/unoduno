@@ -2,10 +2,10 @@
 
 import { useEffect, useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { usePathname, useRouter } from "next/navigation"
+import { usePathname } from "next/navigation"
 import Link from "next/link"
 import { useProfile } from "@/app/dashboard/profile-context"
-import { createClient } from "@/utils/supabase/client"
+import { UserButton, SignedIn, SignedOut } from "@clerk/nextjs"
 
 const navLinks = [
   { label: "Funcionalidades", href: "#funcionalidades" },
@@ -15,20 +15,11 @@ const navLinks = [
 
 export function Navbar() {
   const pathname = usePathname()
-  const router = useRouter()
   const isDashboard = pathname?.startsWith("/dashboard")
 
   const [scrolled, setScrolled] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
   const [activeSection, setActiveSection] = useState("")
-  const [profileOpen, setProfileOpen] = useState(false)
-  
-  const handleLogout = async () => {
-    const supabase = createClient()
-    await supabase.auth.signOut()
-    router.push("/")
-    router.refresh()
-  }
 
   const profile = useProfile()
   const creditBalance = profile?.credit_balance ?? 0
@@ -142,72 +133,23 @@ export function Navbar() {
           )}
 
           <div className="flex items-center gap-4">
-            {isDashboard ? (
-              <div className="relative">
-                <button 
-                  onClick={() => setProfileOpen(!profileOpen)}
-                  className="hidden sm:flex items-center justify-center h-10 w-10 rounded-full bg-gradient-to-tr from-blue-500 to-emerald-400 text-white font-bold border border-white/20 hover:scale-105 transition-transform"
-                >
-                  W
-                </button>
-                <AnimatePresence>
-                  {profileOpen && (
-                    <motion.div
-                      initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                      animate={{ opacity: 1, y: 0, scale: 1 }}
-                      exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                      transition={{ duration: 0.2 }}
-                      className="absolute right-0 mt-3 w-64 rounded-2xl bg-[#111] border border-white/10 shadow-2xl p-4 z-50 flex flex-col gap-3"
-                    >
-                      <div className="flex items-center gap-3 border-b border-white/10 pb-3">
-                        <div className="h-10 w-10 rounded-full bg-gradient-to-tr from-blue-500 to-emerald-400 text-white font-bold flex items-center justify-center shrink-0">
-                          W
-                        </div>
-                        <div className="flex flex-col">
-                          <span className="text-sm font-bold text-white leading-none overflow-hidden text-ellipsis whitespace-nowrap max-w-[150px]">
-                            {profile?.email?.split('@')[0] || "Usuário"}
-                          </span>
-                          <span className="text-xs text-slate-400 mt-1 capitalize">
-                            Plano {profile?.subscription_tier || "Gratuito"}
-                          </span>
-                        </div>
-                      </div>
-                      
-                      <div className="flex flex-col gap-1">
-                        <div className="flex justify-between items-center text-xs mb-1">
-                          <span className="text-slate-400">Cota atual</span>
-                          <span className="text-white font-bold">{creditCount} {creditCount === 1 ? 'crédito' : 'créditos'}</span>
-                        </div>
-                        <div className="w-full h-2 rounded-full bg-white/10 overflow-hidden">
-                          <div className="h-full bg-blue-500 rounded-full" style={{ width: `${progressPercent}%` }} />
-                        </div>
-                        {creditCount <= 0 && (
-                          <span className="text-[10px] text-red-400 mt-1">Sua cota acabou!</span>
-                        )}
-                      </div>
-
-                      <Link href="/#precos" className="flex justify-center items-center w-full py-2.5 mt-1 rounded-xl bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white text-sm font-bold shadow-[0_0_15px_rgba(37,99,235,0.3)] transition-all active:scale-95">
-                        Atualizar Plano
-                      </Link>
-
-                      <button 
-                        onClick={handleLogout}
-                        className="flex justify-center items-center w-full py-2.5 rounded-xl bg-white/5 hover:bg-red-500/10 text-white hover:text-red-400 border border-white/5 hover:border-red-500/20 text-sm font-semibold transition-all active:scale-95 mt-1"
-                      >
-                        Sair da conta
-                      </button>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
+            {/* Clerk Integration */}
+            <SignedIn>
+              <UserButton 
+                appearance={{
+                  elements: {
+                    userButtonAvatarBox: "w-10 h-10 border border-white/20",
+                  }
+                }}
+              />
+            </SignedIn>
+            <SignedOut>
+              <div className="hidden sm:block">
+                <Link href="/sign-in" className="flex items-center justify-center min-h-[44px] min-w-[100px] text-sm font-semibold px-5 rounded-full transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 bg-white/10 border border-white/10 text-white hover:bg-white hover:text-black active:scale-95">
+                  Entrar
+                </Link>
               </div>
-            ) : (
-              <Link
-                href="/login"
-                className="hidden sm:flex items-center justify-center min-h-[44px] min-w-[100px] text-sm font-semibold px-5 rounded-full transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 bg-white/10 border border-white/10 text-white hover:bg-white hover:text-black active:scale-95"
-              >
-                Entrar
-              </Link>
-            )}
+            </SignedOut>
 
             {/* Mobile hamburger — 48x48px min touch target compliant */}
             <button
@@ -276,15 +218,24 @@ export function Navbar() {
               transition={{ delay: 0.3 }}
               className="mt-auto"
             >
-              {!isDashboard && (
+              <SignedOut>
                 <Link
-                  href="/login"
+                  href="/sign-in"
                   onClick={() => setMenuOpen(false)}
                   className="flex items-center justify-center w-full min-h-[56px] text-lg font-semibold rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 bg-white text-black active:scale-[0.98] transition-transform"
                 >
                   Entrar na conta
                 </Link>
-              )}
+              </SignedOut>
+              <SignedIn>
+                <Link
+                  href="/dashboard"
+                  onClick={() => setMenuOpen(false)}
+                  className="flex items-center justify-center w-full min-h-[56px] text-lg font-semibold rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 bg-blue-600 hover:bg-blue-500 text-white active:scale-[0.98] transition-transform"
+                >
+                  Ir para Painel
+                </Link>
+              </SignedIn>
             </motion.div>
           </motion.div>
         )}

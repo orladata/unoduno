@@ -1,0 +1,43 @@
+[cerebrium.deployment]
+name = "unoduno-transcriber"
+python_version = "3.11"
+disable_auth = true
+include = ['./*', 'main.py', 'cerebrium.toml']
+exclude = ['.*']
+
+[cerebrium.build]
+run = [
+    "python -c \"from huggingface_hub import snapshot_download; snapshot_download('openai/whisper-large-v3-turbo', cache_dir='/model_cache')\""
+]
+
+[cerebrium.hardware]
+region = "us-east-1"
+provider = "aws"
+compute = "AMPERE_A10"
+memory = 24.0
+cpu = 4
+gpu_count = 1
+
+[cerebrium.scaling]
+min_replicas = 0
+max_replicas = 3
+cooldown = 60
+scaling_metric = "concurrency_utilization"
+
+[cerebrium.dependencies.pip]
+torch = "latest"
+transformers = "latest"
+optimum = "latest"
+accelerate = "latest"
+yt-dlp = "latest"
+boto3 = "latest"
+huggingface_hub = "latest"
+hf_transfer = "latest"
+
+[cerebrium.env]
+HF_HUB_ENABLE_HF_TRANSFER = "1"
+HF_HOME = "/model_cache"
+HF_HUB_OFFLINE = "1"
+
+[cerebrium.dependencies.apt]
+ffmpeg = "latest"

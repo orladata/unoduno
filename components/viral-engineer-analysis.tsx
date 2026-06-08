@@ -23,6 +23,12 @@ function safeStr(value: unknown): string {
   return String(value)
 }
 
+interface TopComment {
+  author: string
+  likes: string
+  content: string
+}
+
 interface LearningLayerAnalysis {
   videoTitle: string
   originalVideoDetails?: {
@@ -30,11 +36,8 @@ interface LearningLayerAnalysis {
     youtubeVideoId: string
     approximateViews: string
     fullWordForWordTranscript: string
-    topComments: Array<{
-      author: string
-      likes: string
-      content: string
-    }>
+    transcriptionDownloadUrl?: string
+    topComments: TopComment[]
   }
   transcriptBreakdown: Array<{
     segmentName: string
@@ -240,28 +243,38 @@ export function ViralEngineerAnalysis({
         </p>
       </div>
 
-      {/* Tabs Selector (Premium Mobile Scroll) */}
-      <div className="flex flex-nowrap overflow-x-auto scrollbar-hide snap-x gap-2 p-1 bg-white/5 rounded-2xl border border-white/10" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+      {/* Premium Pill Tabs */}
+      <div className="relative flex flex-nowrap overflow-x-auto scrollbar-hide snap-x gap-2 p-1.5 glass-card-subtle mx-auto mb-8 max-w-fit" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
         {[
-          { id: "origin" as const, label: "📹 Origem (Vídeo Original)", icon: "📺" },
-          { id: "essence" as const, label: "🎬 Essência & Transcrição", icon: "🎥" },
-          { id: "audience" as const, label: "👥 Reação do Público", icon: "🔥" },
-          { id: "blueprint" as const, label: "🚀 Guia de Recriação", icon: "🛠️" },
-          { id: "dubbing" as const, label: "🎙️ Dublagem & Tradução", icon: "🎙️" },
-        ].map((tab) => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
-            className={`snap-start shrink-0 min-w-[160px] flex items-center justify-center gap-2 px-4 py-3 text-xs sm:text-sm font-semibold rounded-xl cursor-pointer transition-all duration-300 ${
-              activeTab === tab.id
-                ? "bg-white text-black shadow-lg shadow-white/5 scale-100"
-                : "text-gray-400 hover:text-white hover:bg-white/10 scale-95 opacity-80 hover:opacity-100"
-            }`}
-          >
-            <span>{tab.icon}</span>
-            <span>{tab.label}</span>
-          </button>
-        ))}
+          { id: "origin" as const, label: "Origem" },
+          { id: "essence" as const, label: "Essência" },
+          { id: "audience" as const, label: "Público" },
+          { id: "blueprint" as const, label: "Blueprint" },
+          { id: "dubbing" as const, label: "Dublagem" },
+        ].map((tab) => {
+          const isActive = activeTab === tab.id
+          return (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`relative snap-start shrink-0 flex items-center justify-center gap-2 px-5 py-2.5 text-xs sm:text-sm font-bold rounded-xl cursor-pointer transition-colors duration-300 z-10 ${
+                isActive
+                  ? "text-black"
+                  : "text-white/50 hover:text-white"
+              }`}
+            >
+              {isActive && (
+                <motion.div
+                  layoutId="active-pill"
+                  className="absolute inset-0 bg-white rounded-xl shadow-[0_0_15px_rgba(255,255,255,0.2)]"
+                  transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                  style={{ zIndex: -1 }}
+                />
+              )}
+              <span className={`transition-transform duration-300 ${isActive ? "scale-110" : "opacity-70 group-hover:opacity-100"}`}>{tab.label}</span>
+            </button>
+          )
+        })}
       </div>
 
       {/* Tab Contents (Animated) */}
@@ -363,14 +376,13 @@ export function ViralEngineerAnalysis({
                   </Card>
                 </div>
 
-                {/* Transcrição Íntegra do Roteiro (Whisper AI) */}
+                {/* Resumo da Transcrição e Download */}
                 <Card className="border-white/10 bg-white/5">
                   <CardHeader className="pb-3 border-b border-white/10">
                     <CardTitle className="text-lg flex items-center gap-2 text-white">
-                      <span className="text-2xl">📝</span>
-                      Transcrição Completa (Fidelidade Máxima - Whisper AI)
+                      Resumo da Transcrição
                     </CardTitle>
-                    <p className="text-xs text-gray-400">Transcrição na íntegra palavra por palavra do que é falado no vídeo original</p>
+                    <p className="text-xs text-gray-400">Pontos mais importantes extraídos da transcrição gerada pela IA</p>
                   </CardHeader>
                   <CardContent className="pt-4 space-y-3">
                     <div className="max-h-[350px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
@@ -378,8 +390,24 @@ export function ViralEngineerAnalysis({
                         "{analysis.originalVideoDetails.fullWordForWordTranscript}"
                       </p>
                     </div>
-                    <div className="flex justify-end">
-                      <CopyButton text={analysis.originalVideoDetails.fullWordForWordTranscript} label="Copiar roteiro completo" />
+                    <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
+                      <CopyButton text={analysis.originalVideoDetails.fullWordForWordTranscript} label="Copiar resumo" />
+                      
+                      {analysis.originalVideoDetails.transcriptionDownloadUrl && (
+                        <a
+                          href={analysis.originalVideoDetails.transcriptionDownloadUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold rounded-lg transition-colors"
+                        >
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                            <polyline points="7 10 12 15 17 10" />
+                            <line x1="12" y1="15" x2="12" y2="3" />
+                          </svg>
+                          Baixar Transcrição Completa (.txt)
+                        </a>
+                      )}
                     </div>
                   </CardContent>
                 </Card>
@@ -387,7 +415,6 @@ export function ViralEngineerAnalysis({
                 {/* Top 3 Comments */}
                 <div className="space-y-3">
                   <h3 className="text-sm font-black text-gray-300 uppercase tracking-wider flex items-center gap-2">
-                    <span className="text-lg">💬</span>
                     Comentários Mais Relevantes
                   </h3>
                   <div className="grid grid-cols-1 gap-3">
@@ -418,7 +445,6 @@ export function ViralEngineerAnalysis({
             <Card className="border-blue-500/20 bg-blue-500/5 backdrop-blur-xl">
               <CardHeader className="pb-3 border-b border-white/10">
                 <CardTitle className="text-lg flex items-center gap-2 text-blue-400">
-                  <span className="text-2xl">📝</span>
                   Transcrição Estruturada
                 </CardTitle>
                 <p className="text-xs text-gray-400">Reconstrução fiel dos diálogos e momentos chave do vídeo original</p>
@@ -434,7 +460,7 @@ export function ViralEngineerAnalysis({
                         <h3 className="font-bold text-white text-sm sm:text-base">{safeStr(segment.segmentName)}</h3>
                       </div>
                       <Badge className="bg-white/10 text-gray-300 text-[10px] sm:text-xs">
-                        🎭 Tom: {safeStr(segment.emotionalTone)}
+                        Tom: {safeStr(segment.emotionalTone)}
                       </Badge>
                     </div>
                     <p className="text-sm text-gray-300 leading-relaxed italic bg-white/5 p-3 rounded-lg border border-white/5">
@@ -452,7 +478,6 @@ export function ViralEngineerAnalysis({
             <Card className="border-amber-500/20 bg-amber-500/5 backdrop-blur-xl">
               <CardHeader className="pb-3 border-b border-white/10">
                 <CardTitle className="text-lg flex items-center gap-2 text-amber-400">
-                  <span className="text-2xl">⚡</span>
                   A Essência do Vídeo Original
                 </CardTitle>
                 <p className="text-xs text-gray-400">Estudo de psicologia, ritmo e estética da obra original</p>
@@ -466,15 +491,15 @@ export function ViralEngineerAnalysis({
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
                   <div className="space-y-2 p-3 bg-white/5 rounded-xl border border-white/5">
-                    <p className="text-xs text-purple-400 font-bold">🧠 Gatilhos Psicológicos</p>
+                    <p className="text-xs text-purple-400 font-bold">Gatilhos Psicológicos</p>
                     <p className="text-xs text-gray-300 leading-relaxed">{safeStr(analysis.originalEssence.psychologicalTriggers)}</p>
                   </div>
                   <div className="space-y-2 p-3 bg-white/5 rounded-xl border border-white/5">
-                    <p className="text-xs text-green-400 font-bold">🗣️ Ritmo & Delivery</p>
+                    <p className="text-xs text-green-400 font-bold">Ritmo & Delivery</p>
                     <p className="text-xs text-gray-300 leading-relaxed">{safeStr(analysis.originalEssence.pacingAndDelivery)}</p>
                   </div>
                   <div className="space-y-2 p-3 bg-white/5 rounded-xl border border-white/5">
-                    <p className="text-xs text-blue-400 font-bold">🎥 Estilo Visual</p>
+                    <p className="text-xs text-blue-400 font-bold">Estilo Visual</p>
                     <p className="text-xs text-gray-300 leading-relaxed">{safeStr(analysis.originalEssence.visualStyle)}</p>
                   </div>
                 </div>
@@ -489,31 +514,30 @@ export function ViralEngineerAnalysis({
             <Card className="border-purple-500/20 bg-purple-500/5 backdrop-blur-xl">
               <CardHeader className="pb-3 border-b border-white/10">
                 <CardTitle className="text-lg flex items-center gap-2 text-purple-400">
-                  <span className="text-2xl">👥</span>
                   Psicologia & Reação da Audiência
                 </CardTitle>
                 <p className="text-xs text-gray-400">Análise de views, comentários, elogios e dores ativadas no público</p>
               </CardHeader>
               <CardContent className="space-y-6 pt-4">
                 <div className="space-y-2 p-4 bg-white/5 rounded-xl border border-white/5">
-                  <p className="text-sm font-bold text-purple-300">📊 Por que este vídeo viralizou? (Views & Retenção)</p>
+                  <p className="text-sm font-bold text-purple-300">Por que este vídeo viralizou? (Views & Retenção)</p>
                   <p className="text-sm text-gray-300 leading-relaxed">{safeStr(analysis.audienceInsights.viewsAndEngagementAnalysis)}</p>
                   <CopyButton text={safeStr(analysis.audienceInsights.viewsAndEngagementAnalysis)} label="Copiar análise" />
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="space-y-2 p-4 bg-red-500/5 border border-red-500/10 rounded-xl">
-                    <p className="text-xs text-red-400 font-black uppercase tracking-wider">🛑 Objeções & Críticas</p>
+                    <p className="text-xs text-red-400 font-black uppercase tracking-wider">Objeções & Críticas</p>
                     <p className="text-xs text-gray-300 leading-relaxed">{safeStr(analysis.audienceInsights.publicObjections)}</p>
                   </div>
 
                   <div className="space-y-2 p-4 bg-green-500/5 border border-green-500/10 rounded-xl">
-                    <p className="text-xs text-green-400 font-black uppercase tracking-wider">🤝 Elogios & Empatia</p>
+                    <p className="text-xs text-green-400 font-black uppercase tracking-wider">Elogios & Empatia</p>
                     <p className="text-xs text-gray-300 leading-relaxed">{safeStr(analysis.audienceInsights.praiseAndConnectionPoints)}</p>
                   </div>
 
                   <div className="space-y-2 p-4 bg-blue-500/5 border border-blue-500/10 rounded-xl">
-                    <p className="text-xs text-blue-400 font-black uppercase tracking-wider">⚡ Dores do Público</p>
+                    <p className="text-xs text-blue-400 font-black uppercase tracking-wider">Dores do Público</p>
                     <p className="text-xs text-gray-300 leading-relaxed">{safeStr(analysis.audienceInsights.audiencePainPoints)}</p>
                   </div>
                 </div>
@@ -529,14 +553,13 @@ export function ViralEngineerAnalysis({
             <Card className="border-green-500/20 bg-green-500/5 backdrop-blur-xl">
               <CardHeader className="pb-3 border-b border-white/10">
                 <CardTitle className="text-lg flex items-center gap-2 text-green-400">
-                  <span className="text-2xl">🚀</span>
                   Manual de Recriação Viral
                 </CardTitle>
                 <p className="text-xs text-gray-400">O roteiro de ação passo a passo para você gravar e postar</p>
               </CardHeader>
               <CardContent className="space-y-6 pt-4">
                 <div className="space-y-2 p-4 bg-white/5 rounded-xl border border-white/5">
-                  <p className="text-sm font-bold text-green-300">💡 Como Recriar no seu Estilo (Guia Passo a Passo)</p>
+                  <p className="text-sm font-bold text-green-300">Como Recriar no seu Estilo (Guia Passo a Passo)</p>
                   <p className="text-sm text-gray-300 leading-relaxed whitespace-pre-line">{safeStr(analysis.recreationBlueprint.stepByStepAdaptation)}</p>
                   <CopyButton text={safeStr(analysis.recreationBlueprint.stepByStepAdaptation)} label="Copiar guia passo a passo" />
                 </div>
@@ -544,19 +567,19 @@ export function ViralEngineerAnalysis({
                 {/* Golden Rules and Setup */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2 p-4 bg-amber-500/5 border border-amber-500/10 rounded-xl">
-                    <p className="text-xs text-amber-400 font-black uppercase tracking-wider">⚠️ Regras de Ouro (Inalteráveis)</p>
+                    <p className="text-xs text-amber-400 font-black uppercase tracking-wider">Regras de Ouro (Inalteráveis)</p>
                     <p className="text-xs text-gray-300 leading-relaxed">{safeStr(analysis.recreationBlueprint.recreationRules)}</p>
                   </div>
 
                   <div className="space-y-2 p-4 bg-blue-500/5 border border-blue-500/10 rounded-xl">
-                    <p className="text-xs text-blue-400 font-black uppercase tracking-wider">📸 Setup & Cenas Recomendadas</p>
+                    <p className="text-xs text-blue-400 font-black uppercase tracking-wider">Setup & Cenas Recomendadas</p>
                     <p className="text-xs text-gray-300 leading-relaxed">{safeStr(analysis.recreationBlueprint.suggestedScenes)}</p>
                   </div>
                 </div>
 
                 {/* Niche Hooks Adaptation */}
                 <div className="space-y-3">
-                  <h3 className="text-sm font-bold text-gray-200">🎣 Ganchos Virais Adaptados para Gravar Agora:</h3>
+                  <h3 className="text-sm font-bold text-gray-200">Ganchos Virais Adaptados para Gravar Agora:</h3>
                   <div className="grid grid-cols-1 gap-3">
                     {analysis.recreationBlueprint.hookAdaptationExamples && analysis.recreationBlueprint.hookAdaptationExamples.map((item, idx) => (
                       <div key={idx} className="p-4 bg-white/5 rounded-xl border border-white/5 space-y-2">
@@ -586,7 +609,6 @@ export function ViralEngineerAnalysis({
             <Card className="border-cyan-500/20 bg-cyan-500/5 backdrop-blur-xl">
               <CardHeader className="pb-3 border-b border-white/10">
                 <CardTitle className="text-lg flex items-center gap-2 text-cyan-400">
-                  <span className="text-2xl">🎙️</span>
                   Dublagem & Tradução Automática
                 </CardTitle>
                 <p className="text-xs text-gray-400">Nossa IA traduz, clona a voz original e gera uma nova dublagem com lip-sync automático.</p>
@@ -645,7 +667,6 @@ export function ViralEngineerAnalysis({
       <Card className="border-yellow-500/30 bg-yellow-500/10 backdrop-blur-md">
         <CardHeader className="pb-2">
           <CardTitle className="text-base sm:text-lg flex items-center gap-2 text-yellow-400">
-            <span className="text-2xl">🧠</span>
             O Segredo de Viralidade (Lição Final)
           </CardTitle>
         </CardHeader>

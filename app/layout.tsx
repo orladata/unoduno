@@ -81,6 +81,8 @@ export const viewport: Viewport = {
 
 import { ThemeProvider } from '@/components/theme-provider'
 import { Toaster } from 'sonner'
+import { ClerkProvider } from '@clerk/nextjs'
+import { dark } from '@clerk/themes'
 
 export default function RootLayout({
   children,
@@ -90,11 +92,13 @@ export default function RootLayout({
   return (
     <html lang="pt-BR" suppressHydrationWarning className={`${inter.variable} ${jetbrainsMono.variable} bg-background`}>
       <body className="font-sans antialiased bg-background text-foreground selection:bg-violet-500/30 selection:text-white">
-        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem disableTransitionOnChange>
-          {children}
-          <Toaster theme="dark" position="top-right" />
-          {process.env.NODE_ENV === 'production' && <Analytics />}
-        </ThemeProvider>
+        <ClerkProvider appearance={{ baseTheme: dark }}>
+          <ThemeProvider attribute="class" defaultTheme="dark" enableSystem disableTransitionOnChange>
+            {children}
+            <Toaster theme="dark" position="top-right" />
+            {process.env.NODE_ENV === 'production' && <Analytics />}
+          </ThemeProvider>
+        </ClerkProvider>
       </body>
     </html>
   )

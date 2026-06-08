@@ -97,9 +97,47 @@ function CopyIcon() {
 
 // ─── Loading State ────────────────────────────────────────────────────────────
 
-function StreamingIndicator({ status }: { readonly status: string }) {
+function StreamingIndicator({ status, logText }: { readonly status: string, readonly logText?: string }) {
   const isStreaming = status === "streaming" || status === "submitted"
   const [seconds, setSeconds] = useState(0)
+
+  let currentLog = "Iniciando infraestrutura..."
+  let currentStage = 0
+
+  if (status === "idle") {
+    currentStage = 0
+    currentLog = "Aguardando URL..."
+  } else if (isStreaming) {
+    currentStage = 1
+    currentLog = "Extraindo áudio do vídeo..."
+    
+    if (logText) {
+      if (logText.includes("TRANSCRICAO_START")) {
+        currentStage = 2
+        currentLog = "Transcrevendo fala (Whisper)..."
+      }
+      
+      const jsonMatch = logText.indexOf("{")
+      if (jsonMatch !== -1 && jsonMatch > logText.length / 2) {
+         currentStage = 4
+         currentLog = "Formatando dossiê final..."
+      } else if (logText.length > 500 && !logText.includes("{")) {
+         currentStage = 3
+         currentLog = "Analisando padrões virais (Gemini)..."
+      } else if (jsonMatch !== -1) {
+         currentStage = 4
+         currentLog = "Gerando dossiê (JSON)..."
+      }
+
+      const matches = [...logText.matchAll(/\\*⏳ (.*?)\\*/g)]
+      if (matches.length > 0) {
+        currentLog = matches[matches.length - 1][1]
+      }
+    }
+  } else if (status === "complete") {
+    currentStage = 4
+    currentLog = "Análise concluída!"
+  }
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -108,89 +146,113 @@ function StreamingIndicator({ status }: { readonly status: string }) {
     return () => clearInterval(timer)
   }, [])
 
+  const stages = [
+    { id: 0, label: "Preparo", icon: "1" },
+    { id: 1, label: "Áudio", icon: "2" },
+    { id: 2, label: "Texto", icon: "3" },
+    { id: 3, label: "Análise", icon: "4" },
+    { id: 4, label: "Dossiê", icon: "5" },
+  ]
+
   return (
     <motion.div 
-      initial={{ opacity: 0, scale: 0.98 }}
-      animate={{ opacity: 1, scale: 1 }}
-      className="flex flex-col items-center justify-center gap-8 py-16" 
-      role="status" 
-      aria-live="polite" 
-      aria-label="Gerando roteiro"
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="w-full max-w-4xl mx-auto py-12"
+      role="status"
     >
-      {/* Central spinner */}
-      <div className="relative flex items-center justify-center">
-        <div
-          className="absolute w-28 h-28 rounded-full animate-ping"
-          style={{ background: "radial-gradient(circle, rgba(255,255,255,0.03) 0%, transparent 70%)", animationDuration: "3s" }}
+      <div className="glass-card p-6 sm:p-10 relative overflow-hidden">
+        {/* Background glow based on stage */}
+        <div 
+          className="absolute inset-0 opacity-20 transition-colors duration-1000 pointer-events-none"
+          style={{
+            background: currentStage === 0 ? "radial-gradient(circle at 50% 0%, rgba(255,255,255,0.2), transparent 70%)" :
+                        currentStage === 1 ? "radial-gradient(circle at 50% 0%, rgba(139,92,246,0.4), transparent 70%)" :
+                        currentStage === 2 ? "radial-gradient(circle at 50% 0%, rgba(59,130,246,0.4), transparent 70%)" :
+                        currentStage === 3 ? "radial-gradient(circle at 50% 0%, rgba(236,72,153,0.4), transparent 70%)" :
+                        "radial-gradient(circle at 50% 0%, rgba(16,185,129,0.4), transparent 70%)"
+          }}
         />
-        <div
-          className="w-16 h-16 rounded-2xl border flex items-center justify-center transition-all duration-300"
-          style={{ borderColor: "rgba(255,255,255,0.08)", background: "rgba(255,255,255,0.04)" }}
-        >
-          <SpinnerIcon size={28} />
-        </div>
-      </div>
 
-      {/* Phase labels */}
-      <div className="flex flex-col items-center gap-3">
-        <h2 className="text-base font-bold text-white tracking-tight">
-          {isStreaming ? "Gerando roteiro adaptado..." : "Analisando vídeo..."}
-        </h2>
-        <div className="flex items-center gap-2 text-white/40">
-          <div className="w-1 h-1 rounded-full bg-current animate-pulse" />
-          <p className="text-xs font-semibold tracking-wide uppercase">
-            {isStreaming ? "Escrevendo seu roteiro" : "Conectando ao modelo de IA"} ({seconds}s)
-          </p>
-          <div className="w-1 h-1 rounded-full bg-current animate-pulse" style={{ animationDelay: "0.2s" }} />
-        </div>
-      </div>
-
-      {/* Timer alert for longer videos */}
-      {seconds > 15 && (
-        <motion.div 
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="p-4 rounded-xl bg-white/[0.02] border border-white/5 max-w-sm text-center"
-        >
-          <p className="text-xs text-white/50 leading-relaxed">
-            ⏳ O vídeo original é um pouco longo. A inteligência artificial está processando a transcrição e estruturando a engenharia viral completa. Por favor, aguarde mais alguns instantes.
-          </p>
-        </motion.div>
-      )}
-
-      {/* Step list */}
-      <div
-        className="flex flex-col gap-3 px-6 py-5 rounded-3xl w-full max-w-sm bg-white/[0.02] border border-white/5 shadow-2xl"
-        role="list"
-        aria-label="Etapas do processo"
-      >
-        {[
-          { label: "Extraindo transcrição do vídeo", done: true },
-          { label: "Analisando padrões virais", done: isStreaming },
-          { label: "Adaptando para o mercado BR", done: false },
-          { label: "Roteiro pronto", done: false },
-        ].map((step, i) => (
-          <div key={i} className="flex items-center gap-3" role="listitem">
-            <div
-              className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 transition-all duration-300"
-              style={{
-                background: step.done ? "rgba(255,255,255,0.12)" : "rgba(255,255,255,0.02)",
-                border: `1px solid ${step.done ? "rgba(255,255,255,0.15)" : "rgba(255,255,255,0.05)"}`,
-              }}
-              aria-hidden="true"
-            >
-              {step.done
-                ? <CheckIcon />
-                : i === (isStreaming ? 2 : 1)
-                  ? <SpinnerIcon size={10} />
-                  : null
-              }
-            </div>
-            <span className="text-xs font-medium" style={{ color: step.done ? "rgba(255,255,255,0.8)" : "rgba(255,255,255,0.35)" }}>
-              {step.label}
-            </span>
+        <div className="relative z-10 flex flex-col items-center">
+          {/* Main Status Text */}
+          <h2 className="text-xl sm:text-2xl font-black text-white mb-3 text-center tracking-tight animate-fade-up">
+            {currentLog}
+          </h2>
+          <div className="flex items-center gap-2 mb-12">
+            <div className="w-2 h-2 rounded-full bg-violet-400 animate-pulse" />
+            <span className="text-xs sm:text-sm font-medium text-white/50 font-mono">{seconds}s decorridos</span>
           </div>
-        ))}
+
+          {/* Pipeline Visual */}
+          <div className="w-full relative flex justify-between items-start max-w-3xl mx-auto mb-8">
+            {/* Connecting Line Background */}
+            <div className="absolute top-5 left-[10%] right-[10%] h-1 bg-white/[0.05] rounded-full z-0" />
+            
+            {/* Connecting Line Progress */}
+            <motion.div 
+              className="absolute top-5 left-[10%] h-1 bg-gradient-to-r from-violet-500 to-blue-500 rounded-full z-0 origin-left"
+              initial={{ width: "0%" }}
+              animate={{ width: `${Math.min(100, (currentStage / (stages.length - 1)) * 80)}%` }}
+              transition={{ duration: 0.8, ease: "easeInOut" }}
+            />
+
+            {/* Stages */}
+            {stages.map((stage) => {
+              const isPast = currentStage > stage.id
+              const isCurrent = currentStage === stage.id
+              
+              return (
+                <div key={stage.id} className="relative z-10 flex flex-col items-center gap-3 w-[20%]">
+                  <motion.div 
+                    initial={false}
+                    animate={{
+                      scale: isCurrent ? 1.15 : 1,
+                      backgroundColor: isPast || isCurrent ? "rgba(255,255,255,1)" : "rgba(255,255,255,0.05)",
+                      borderColor: isPast || isCurrent ? "rgba(255,255,255,1)" : "rgba(255,255,255,0.1)",
+                      color: isPast || isCurrent ? "#000" : "rgba(255,255,255,0.3)"
+                    }}
+                    className={`w-10 h-10 sm:w-12 sm:h-12 rounded-full border-2 flex items-center justify-center text-lg sm:text-xl shadow-lg transition-colors duration-300 ${
+                      isCurrent ? "shadow-[0_0_20px_rgba(139,92,246,0.4)] border-transparent" : ""
+                    }`}
+                  >
+                    {isPast ? <CheckIcon /> : stage.icon}
+                  </motion.div>
+                  <span className={`text-[9px] sm:text-[11px] font-bold uppercase tracking-widest text-center transition-colors duration-300 ${
+                    isCurrent ? "text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.5)]" : isPast ? "text-white/70" : "text-white/30"
+                  }`}>
+                    {stage.label}
+                  </span>
+                  
+                  {isCurrent && (
+                    <motion.div 
+                      layoutId="active-stage-indicator"
+                      className="absolute -bottom-4 w-1.5 h-1.5 rounded-full bg-white shadow-[0_0_10px_rgba(255,255,255,0.8)]"
+                      transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                    />
+                  )}
+                </div>
+              )
+            })}
+          </div>
+
+          {/* Long Video Warning */}
+          <AnimatePresence>
+            {seconds > 20 && currentStage < 4 && (
+              <motion.div 
+                initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                className="mt-6 px-5 py-3 rounded-xl bg-amber-500/10 border border-amber-500/20 max-w-sm text-center"
+              >
+                <p className="text-xs font-medium text-amber-200/90 leading-relaxed">
+                  <span className="text-amber-400 mr-2 font-bold">AVISO:</span>
+                  Vídeo extenso detectado. A IA está processando uma grande quantidade de dados, aguarde mais um pouco.
+                </p>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
       </div>
     </motion.div>
   )
@@ -519,6 +581,13 @@ function AnalisarInner() {
   const lastMessage = messages.filter((m) => m.role === "assistant").pop()
   const assistantText = lastMessage?.content ?? ""
   
+  // Extract real-time transcript
+  let fullTranscriptText = ""
+  const transcriptMatch = assistantText.match(/\*TRANSCRICAO_START\*\n([\s\S]*?)\n\*TRANSCRICAO_END\*/)
+  if (transcriptMatch) {
+    fullTranscriptText = transcriptMatch[1]
+  }
+  
   // Parse JSON analysis from assistant text
   let analysisData = null
   try {
@@ -590,7 +659,7 @@ function AnalisarInner() {
       )}
 
       {(phase === "idle" || phase === "streaming") && (
-        <StreamingIndicator status={isLoading ? "streaming" : "idle"} />
+        <StreamingIndicator status={isLoading ? "streaming" : "idle"} logText={assistantText} />
       )}
 
       {phase === "complete" && analysisData && (
@@ -600,27 +669,53 @@ function AnalisarInner() {
         />
       )}
 
-      {/* Live streaming preview while generating */}
-      {phase === "streaming" && assistantText && (
-        <div className="mt-8">
-          <div
-            className="rounded-2xl px-5 py-5"
-            style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)" }}
-            aria-live="polite"
-            aria-label="Pré-visualização do roteiro sendo gerado"
-          >
-            <p className="text-xs font-medium mb-3" style={{ color: "var(--text-subtle)" }}>
-              PRÉ-VISUALIZAÇÃO
+      {/* Real-time Transcript Preview */}
+      {phase === "streaming" && fullTranscriptText && (
+        <motion.div 
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mt-8 mb-4 max-w-4xl mx-auto w-full"
+        >
+          <div className="flex items-center justify-between mb-3 px-2">
+            <h3 className="text-xs font-bold text-white/50 uppercase tracking-widest flex items-center gap-2">
+              <span className="w-1.5 h-1.5 rounded-full bg-violet-500 animate-pulse" />
+              Áudio Transcrito em Tempo Real
+            </h3>
+          </div>
+          <div className="glass-card-subtle px-5 py-4 overflow-y-auto relative group" style={{ maxHeight: "250px" }}>
+            <p className="text-[13px] leading-relaxed text-white/70 whitespace-pre-wrap font-mono">
+              {fullTranscriptText}
+            </p>
+            {/* Fade out bottom to indicate more text is coming */}
+            <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-[#0a0a0a] to-transparent pointer-events-none" />
+          </div>
+        </motion.div>
+      )}
+
+      {/* Live streaming preview while generating JSON */}
+      {phase === "streaming" && assistantText && !assistantText.includes("*TRANSCRICAO_START*") && (
+        <motion.div 
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mt-8 max-w-4xl mx-auto w-full"
+        >
+          <div className="glass-card-subtle px-6 py-5 relative overflow-hidden" aria-live="polite">
+            {/* Scan line effect */}
+            <div className="scan-line" />
+            
+            <p className="text-[10px] font-bold text-violet-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+              <SpinnerIcon size={12} />
+              Processando Dossiê Viral...
             </p>
             <div className="flex flex-col gap-2">
-              {sanitizeTextContent(assistantText).split("\n").filter(Boolean).slice(-6).map((line, i) => (
-                <p key={i} className="text-sm leading-relaxed" style={{ color: "rgba(255,255,255,0.6)" }}>
+              {sanitizeTextContent(assistantText).split("\n").filter(Boolean).slice(-5).map((line, i) => (
+                <p key={i} className="text-xs sm:text-sm leading-relaxed text-white/60 font-mono">
                   {line}
                 </p>
               ))}
             </div>
           </div>
-        </div>
+        </motion.div>
       )}
     </>
   )

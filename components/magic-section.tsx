@@ -93,15 +93,15 @@ export function MagicSection() {
         {/* Title */}
         <motion.div variants={itemVariants} className="text-center mb-16">
           <p className="text-[11px] tracking-[0.2em] uppercase mb-4 font-bold text-slate-500">
-            A Mágica
+            Processamento Neural
           </p>
           <h2
             id={headingId}
             className="font-black text-4xl md:text-5xl lg:text-6xl tracking-tighter text-balance mb-4 text-white leading-[1.05]"
           >
-            De URL a roteiro
+            Análise e conversão
             <br />
-            <span className="text-slate-500">em segundos.</span>
+            <span className="text-slate-500">de conteúdo em vídeo.</span>
           </h2>
         </motion.div>
 

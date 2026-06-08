@@ -157,6 +157,7 @@ export const YouTubeTranscriptionSchema = z.object({
   videoId: z.string().describe('ID único do vídeo no YouTube'),
   audioUrl: z.string().url().describe('URL pública do arquivo de áudio (MP3/M4A)'),
   transcript: z.string().describe('Texto completo da transcrição'),
+  r2_url: z.string().url().optional().describe('URL pública do R2 contendo o JSON armazenado'),
   segments: z.array(
     z.object({
       start: z.number().describe('Tempo de início do segmento (segundos)'),
@@ -175,10 +176,10 @@ export const YouTubeTranscriptionSchema = z.object({
   }).describe('Metadados do vídeo'),
   transcriptionStats: z.object({
     wordCount: z.number().describe('Número total de palavras'),
-    averageWordsPerSegment: z.number().describe('Média de palavras por segmento'),
+    averageWordsPerSegment: z.number().optional().describe('Média de palavras por segmento'),
     totalSegments: z.number().describe('Número total de segmentos'),
     processingTimeSeconds: z.number().describe('Tempo de processamento (segundos)'),
-    backend: z.enum(['groq', 'modal', 'google-cloud']).describe('Backend utilizado'),
+    backend: z.enum(['groq', 'modal', 'google-cloud', 'cerebrium']).describe('Backend utilizado'),
   }).describe('Estatísticas da transcrição'),
   error: z.string().optional().describe('Mensagem de erro se houver falha'),
   timestamp: z.string().datetime().describe('Data/hora de processamento'),

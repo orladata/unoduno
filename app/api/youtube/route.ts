@@ -1,16 +1,17 @@
-import { createClient } from '@/utils/supabase/server'
+import { auth, clerkClient } from '@clerk/nextjs/server'
 import { NextResponse } from 'next/server'
 
 export async function GET(request: Request) {
-  const supabase = await createClient()
-  const { data: { session }, error } = await supabase.auth.getSession()
+  const { userId } = await auth()
 
-  if (error || !session) {
+  if (!userId) {
     return NextResponse.json({ error: 'Não autorizado. Por favor, faça login.' }, { status: 401 })
   }
 
-  // O provider_token é o token OAuth do Google
-  const providerToken = session.provider_token
+  // Obter o token OAuth do Google via Clerk
+  const client = await clerkClient()
+  const oauthResponse = await client.users.getUserOauthAccessToken(userId, 'oauth_google')
+  const providerToken = oauthResponse.data[0]?.token
 
   if (!providerToken) {
     return NextResponse.json({ 

@@ -59,101 +59,147 @@ def get_model():
 
 @web_app.post("/transcribe")
 def transcribe(request: TranscribeRequest):
-    whisper_model = get_model()
-    temp_filename = "temp_audio_to_transcribe"
-    temp_file_ext = ".mp3"
-    full_temp_path = temp_filename + temp_file_ext
-    
-    try:
-        url_to_download = request.audio_url
-        
-        # Burlador inteligente: Se receber URL do proxy da Vercel, pega o link direto do YouTube
-        if "api/audio-proxy?videoId=" in url_to_download:
-            video_id = url_to_download.split("videoId=")[1].split("&")[0]
-            url_to_download = f"https://www.youtube.com/watch?v={video_id}"
+    from fastapi.responses import StreamingResponse
+    import uuid
+    import json
+    import subprocess
+    import os
 
-        print(f"[~] Fazendo download do áudio de: {url_to_download} ...")
-
-        print(f"[~] Iniciando extração com yt-dlp avançado para a URL: {url_to_download}")
+    def event_stream():
+        whisper_model = get_model()
+        session_id = str(uuid.uuid4())[:8]
+        temp_filename = f"temp_audio_to_transcribe_{session_id}"
+        temp_file_ext = ".mp3"
+        full_temp_path = temp_filename + temp_file_ext
         
-        # Base commands (Disfarce Apple TV + Cookies)
-        base_extractor_args = "youtube:player_client=ios,tv"
-        
-        # 4. Injeção Dinâmica de Po-Token (Proof of Origin)
-        po_token = os.getenv("YOUTUBE_PO_TOKEN")
-        if po_token:
-            base_extractor_args += f";po_token={po_token}"
-            print("[+] Injetando Po-Token de Validação...")
-
-        command = [
-            "yt-dlp",
-            "-x", "--audio-format", "mp3",
-            "--extractor-args", base_extractor_args,
-            "--cookies", "/root/cookies.txt", 
-            "--js-runtimes", "node",
-        ]
-        
-        # 3. Injeção Dinâmica de Proxy Residencial
-        proxy_url = os.getenv("YOUTUBE_PROXY")
-        if proxy_url:
-            command.extend(["--proxy", proxy_url])
-            print("[+] Roteando tráfego via Proxy Residencial...")
+        try:
+            url_to_download = request.audio_url
             
-        command.extend(["-o", full_temp_path, url_to_download])
-        
-        if "youtube.com" in url_to_download or "youtu.be" in url_to_download:
+            # Burlador inteligente: Se receber URL do proxy da Vercel, pega o link direto do YouTube
+            if "api/audio-proxy?videoId=" in url_to_download:
+                video_id = url_to_download.split("videoId=")[1].split("&")[0]
+                url_to_download = f"https://www.youtube.com/watch?v={video_id}"
+
+            yield f'data: {json.dumps({"status": "downloading", "message": "Iniciando download"})}\\n\\n'.encode('utf-8')
+            print(f"[~] Fazendo download do áudio de: {url_to_download} ...")
+
+            print(f"[~] Iniciando extração com yt-dlp avançado para a URL: {url_to_download}")
             
-            print("[~] Iniciando extração anônima camuflada como dispositivo Apple TV/iOS...")
-            process = subprocess.run(command, capture_output=True, text=True)
-            if process.returncode != 0:
-                raise Exception(f"yt-dlp falhou com erro: {process.stderr}")
-            print("[+] Download do YouTube concluído via yt-dlp!")
+            # Base commands (Disfarce Apple TV + Cookies)
+            base_extractor_args = "youtube:player_client=ios,tv"
             
-        else:
-            # Download de links diretos de MP3 genéricos
-            import requests
-            req = requests.get(url_to_download, stream=True)
-            with open(full_temp_path, "wb") as f:
-                for chunk in req.iter_content(chunk_size=1024*1024):
-                    if chunk: f.write(chunk)
-            print("[+] Download genérico concluído!")
+            # 4. Injeção Dinâmica de Po-Token (Proof of Origin)
+            po_token = os.getenv("YOUTUBE_PO_TOKEN")
+            if po_token:
+                base_extractor_args += f";po_token={po_token}"
+                print("[+] Injetando Po-Token de Validação...")
 
-        # Transcrição Otimizada
-        print(f"[~] Iniciando transcrição de alta fidelidade...")
-        segments, info = whisper_model.transcribe(
-            full_temp_path, 
-            language=request.language,
-            beam_size=5,
-            vad_filter=True, # Remove silêncios para acelerar processamento
-        )
+            proxy_url = os.getenv("YOUTUBE_PROXY") or os.getenv("RESIDENTIAL_PROXY")
+            raw_temp_path = temp_filename + "_raw.webm"
+            
+            command = [
+                "yt-dlp",
+                "-f", "worstaudio/bestaudio",
+                "--extractor-args", base_extractor_args,
+                "--cookies", "/root/cookies.txt", 
+                "--js-runtimes", "node",
+                "--no-check-certificate",
+                "--quiet",
+            ]
+            
+            if proxy_url:
+                command.extend(["--proxy", proxy_url])
+                print("[+] Roteando tráfego via Proxy Residencial...")
+                
+            command.extend(["-o", raw_temp_path, url_to_download])
+            
+            if "youtube.com" in url_to_download or "youtu.be" in url_to_download:
+                
+                print("[~] Iniciando extração ultrarrápida (worstaudio) camuflada como Apple TV/iOS...")
+                yield f'data: {json.dumps({"status": "downloading", "message": "Extraindo áudio via proxy..."})}\\n\\n'.encode('utf-8')
+                process = subprocess.run(command, capture_output=True, text=True)
+                
+                # FALLBACK: Se o proxy falhar (ex: 403 Forbidden), tenta sem proxy
+                if process.returncode != 0:
+                    print(f"[!] Falha com proxy: {process.stderr}")
+                    if proxy_url:
+                        print("[~] Tentando modo Fallback (Sem Proxy direto pelo Modal)...")
+                        yield f'data: {json.dumps({"status": "downloading", "message": "Proxy falhou. Tentando conexão direta..."})}\\n\\n'.encode('utf-8')
+                        # Remove a flag --proxy e o valor da URL do proxy do comando original
+                        fallback_command = [arg for arg in command if arg != "--proxy" and arg != proxy_url]
+                        process = subprocess.run(fallback_command, capture_output=True, text=True)
+                        
+                if process.returncode != 0:
+                    raise Exception(f"yt-dlp falhou completamente: {process.stderr}")
+                
+                print("[+] Download bruto concluído via yt-dlp!")
+                
+                print("[~] Reduzindo bitrate e otimizando para IA com FFmpeg...")
+                yield f'data: {json.dumps({"status": "compressing", "message": "Comprimindo áudio..."})}\\n\\n'.encode('utf-8')
+                ffmpeg_cmd = [
+                    "ffmpeg", "-y", "-i", raw_temp_path,
+                    "-acodec", "libmp3lame",
+                    "-ac", "1", # Mono
+                    "-ar", "16000", # 16kHz
+                    "-b:a", "32k", # Bitrate super baixo
+                    full_temp_path
+                ]
+                subprocess.run(ffmpeg_cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                
+                if os.path.exists(raw_temp_path):
+                    os.remove(raw_temp_path)
+                
+                print("[+] Áudio compactado com sucesso!")
+                
+            else:
+                yield f'data: {json.dumps({"status": "downloading", "message": "Baixando arquivo..."})}\\n\\n'.encode('utf-8')
+                import requests
+                req = requests.get(url_to_download, stream=True)
+                with open(full_temp_path, "wb") as f:
+                    for chunk in req.iter_content(chunk_size=1024*1024):
+                        if chunk: f.write(chunk)
+                print("[+] Download genérico concluído!")
 
-        result_segments = []
-        full_text = []
-        for segment in segments:
-            full_text.append(segment.text)
-            result_segments.append({
-                "start": round(segment.start, 2),
-                "end": round(segment.end, 2),
-                "text": segment.text.strip()
-            })
+            yield f'data: {json.dumps({"status": "transcribing", "message": "Iniciando transcrição..."})}\\n\\n'.encode('utf-8')
+            print(f"[~] Iniciando transcrição de alta fidelidade...")
+            segments, info = whisper_model.transcribe(
+                full_temp_path, 
+                language=request.language,
+                beam_size=5,
+                vad_filter=True, # Remove silêncios para acelerar processamento
+            )
 
-        return {
-            "success": True,
-            "language": info.language,
-            "language_probability": info.language_probability,
-            "duration_seconds": round(info.duration, 2),
-            "text": " ".join(full_text).strip(),
-            "segments": result_segments
-        }
+            result_segments = []
+            full_text = []
+            for segment in segments:
+                full_text.append(segment.text)
+                result_segments.append({
+                    "start": round(segment.start, 2),
+                    "end": round(segment.end, 2),
+                    "text": segment.text.strip()
+                })
 
-    except Exception as e:
-        print(f"[!] Erro no processamento: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Erro interno ao transcrever o áudio: {str(e)}")
-        
-    finally:
-        # Limpeza
-        if os.path.exists(full_temp_path):
-            os.remove(full_temp_path)
+            final_data = {
+                "success": True,
+                "status": "done",
+                "language": info.language,
+                "language_probability": info.language_probability,
+                "duration_seconds": round(info.duration, 2),
+                "text": " ".join(full_text).strip(),
+                "segments": result_segments
+            }
+            yield f'data: {json.dumps(final_data)}\\n\\n'.encode('utf-8')
+
+        except Exception as e:
+            print(f"[!] Erro no processamento: {str(e)}")
+            error_data = {"success": False, "status": "error", "error": f"Erro interno ao transcrever o áudio: {str(e)}"}
+            yield f'data: {json.dumps(error_data)}\\n\\n'.encode('utf-8')
+            
+        finally:
+            if os.path.exists(full_temp_path):
+                os.remove(full_temp_path)
+
+    return StreamingResponse(event_stream(), media_type="text/event-stream")
 
 # Variavel global para o modelo de voz (TTS)
 tts_model = None
@@ -272,7 +318,8 @@ def dub_video(request: DubRequest):
 @app.function(
     image=image, 
     gpu="T4", 
-    timeout=1200
+    timeout=1200,
+    secrets=[modal.Secret.from_name("brightdata-proxy", required_keys=["RESIDENTIAL_PROXY"])]
 ) 
 @modal.asgi_app()
 def fastapi_app():
