@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { motion } from "framer-motion"
+import { motion, Variants } from "framer-motion"
 import { useRouter } from "next/navigation"
 import { useProfile } from "./profile-context"
 import Link from "next/link"
@@ -132,7 +132,7 @@ export default function DashboardPage() {
 
   const videoId = extractVideoId(url)
 
-  const container = {
+  const container: Variants = {
     hidden: { opacity: 0 },
     visible: {
       opacity: 1,
@@ -140,7 +140,7 @@ export default function DashboardPage() {
     },
   }
 
-  const item = {
+  const item: Variants = {
     hidden: { opacity: 0, y: 16 },
     visible: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 300, damping: 24 } },
   }

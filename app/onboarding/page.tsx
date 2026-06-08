@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { motion, AnimatePresence } from "framer-motion"
+import { motion, AnimatePresence, Variants } from "framer-motion"
 import { useRouter } from "next/navigation"
 
 type Step = 1 | 2 | 3
@@ -20,7 +20,7 @@ export default function OnboardingPage() {
     router.push("/dashboard")
   }
 
-  const stepVariants = {
+  const stepVariants: Variants = {
     hidden: { opacity: 0, x: 20 },
     visible: { opacity: 1, x: 0, transition: { type: "spring", stiffness: 300, damping: 24 } },
     exit: { opacity: 0, x: -20, transition: { duration: 0.2 } },

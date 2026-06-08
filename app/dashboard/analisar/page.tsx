@@ -6,7 +6,7 @@ import Link from "next/link"
 import { youtubeUrlSchema, extractVideoId, sanitizeTextContent } from "@/lib/validations"
 import { useChatAPI } from "@/hooks/use-chat-api"
 import { ViralEngineerAnalysis } from "@/components/viral-engineer-analysis"
-import { motion } from "framer-motion"
+import { motion, AnimatePresence } from "framer-motion"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
