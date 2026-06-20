@@ -46,13 +46,13 @@ function FAQItem({
   return (
     <motion.div
       initial={false}
-      className="border-b border-white/10 overflow-hidden"
+      className="border-b border-[#00ff41]/10 overflow-hidden"
     >
       <button
         id={`faq-btn-${index}`}
         type="button"
         onClick={onToggle}
-        className="w-full flex items-center justify-between py-6 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 rounded-lg min-h-[60px] group transition-colors"
+        className="w-full flex items-center justify-between py-6 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00ff41] rounded-lg min-h-[60px] group transition-colors"
         aria-expanded={isOpen}
         aria-controls={panelId}
       >
@@ -62,7 +62,7 @@ function FAQItem({
         <motion.div
           animate={{ rotate: isOpen ? 45 : 0 }}
           transition={{ type: "spring", stiffness: 300, damping: 20 }}
-          className="shrink-0 flex items-center justify-center w-8 h-8 rounded-full bg-white/5 border border-white/10 group-hover:bg-white/10 text-slate-400 group-hover:text-white transition-colors"
+          className="shrink-0 flex items-center justify-center w-8 h-8 rounded-full bg-[#00ff41]/10 border border-[#00ff41]/20 group-hover:bg-[#00ff41]/20 text-[#00ff41] group-hover:text-white transition-colors"
           aria-hidden="true"
         >
           <svg
@@ -133,16 +133,16 @@ export function FAQSection() {
       >
         {/* Title */}
         <motion.div variants={itemVariants} className="text-center mb-16">
-          <p className="text-[11px] tracking-[0.2em] uppercase mb-4 font-bold text-slate-500">
+          <p className="text-[11px] tracking-[0.2em] uppercase mb-4 font-bold text-[#00ff41]/70">
             FAQ
           </p>
           <h2 className="font-black text-3xl md:text-5xl tracking-tighter text-balance text-white">
-            Perguntas frequentes
+            Perguntas <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#00ff41] to-[#00dd3d]">frequentes</span>
           </h2>
         </motion.div>
 
         {/* FAQ list */}
-        <motion.div variants={itemVariants} className="border-t border-white/10">
+        <motion.div variants={itemVariants} className="border-t border-[#00ff41]/10">
           {faqs.map((faq, i) => (
             <FAQItem
               key={faq.q}

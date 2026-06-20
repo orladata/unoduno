@@ -41,7 +41,7 @@ function Avatar({ name }: { name: string }) {
 
   return (
     <div
-      className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 text-xs font-bold bg-white/10 text-white border border-white/5"
+      className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 text-xs font-bold bg-[#00ff41]/10 text-[#00ff41] border border-[#00ff41]/20"
       aria-hidden="true"
     >
       {initials}
@@ -83,7 +83,7 @@ export function SocialProofSection() {
           variants={itemVariants}
           role="list"
           aria-label="Estatisticas"
-          className="grid grid-cols-2 md:grid-cols-4 gap-px mb-20 rounded-[2rem] overflow-hidden bg-white/10 border border-white/10 shadow-[0_0_40px_rgba(255,255,255,0.02)]"
+          className="grid grid-cols-2 md:grid-cols-4 gap-px mb-20 rounded-2xl overflow-hidden bg-[#00ff41]/10 border border-[#00ff41]/15 shadow-[0_0_40px_rgba(0,255,65,0.08)]"
         >
           {stats.map((stat) => (
             <motion.div
@@ -113,13 +113,13 @@ export function SocialProofSection() {
 
         {/* Section heading */}
         <motion.div variants={itemVariants} className="text-center mb-16">
-          <p className="text-[11px] tracking-[0.2em] uppercase mb-4 font-bold text-slate-500">
+          <p className="text-[11px] tracking-[0.2em] uppercase mb-4 font-bold text-[#00ff41]/70">
             Depoimentos
           </p>
           <h2 className="font-black text-4xl md:text-5xl lg:text-6xl tracking-tighter text-balance mb-4 text-white leading-[1.05]">
             Quem usa, não volta
             <br />
-            <span className="text-slate-500">para o processo antigo.</span>
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#00ff41] to-[#00dd3d]">para o processo antigo.</span>
           </h2>
         </motion.div>
 
@@ -138,13 +138,13 @@ export function SocialProofSection() {
             {[...testimonials, ...testimonials, ...testimonials, ...testimonials].map((t, idx) => (
               <figure
                 key={`${t.name}-${idx}`}
-                className="w-[350px] shrink-0 rounded-[2rem] p-8 flex flex-col gap-6 bg-white/[0.02] border border-white/10 hover:border-violet-500/30 transition-colors duration-300 shadow-[0_0_40px_rgba(255,255,255,0.02)] group"
+                className="w-[350px] shrink-0 rounded-xl p-8 flex flex-col gap-6 bg-[#00ff41]/5 border border-[#00ff41]/15 hover:border-[#00ff41]/40 transition-colors duration-300 shadow-[0_0_30px_rgba(0,255,65,0.08)] group"
                 style={{ backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)" }}
               >
                 {/* Stars */}
                 <div className="flex gap-1" aria-label="5 estrelas" role="img">
                   {Array.from({ length: 5 }).map((_, si) => (
-                    <svg key={si} width="16" height="16" viewBox="0 0 24 24" fill="currentColor" className="text-violet-500 group-hover:scale-110 transition-transform duration-300" aria-hidden="true" style={{ transitionDelay: `${si * 50}ms` }}>
+                    <svg key={si} width="16" height="16" viewBox="0 0 24 24" fill="currentColor" className="text-[#00ff41] group-hover:scale-110 transition-transform duration-300" aria-hidden="true" style={{ transitionDelay: `${si * 50}ms` }}>
                       <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
                     </svg>
                   ))}
@@ -156,12 +156,12 @@ export function SocialProofSection() {
                   </p>
                 </blockquote>
 
-                <figcaption className="flex items-center gap-4 mt-auto pt-6 border-t border-white/5">
+                <figcaption className="flex items-center gap-4 mt-auto pt-6 border-t border-[#00ff41]/10">
                   <Avatar name={t.name} />
                   <div>
                     <p className="text-[14px] font-bold text-white mb-0.5">{t.name}</p>
                     <p className="text-[12px] text-slate-400 font-medium">
-                      {t.role} — <span className="text-violet-400">{t.subs}</span>
+                      {t.role} — <span className="text-[#00ff41]">{t.subs}</span>
                     </p>
                   </div>
                 </figcaption>

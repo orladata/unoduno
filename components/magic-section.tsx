@@ -92,7 +92,7 @@ export function MagicSection() {
       >
         {/* Title */}
         <motion.div variants={itemVariants} className="text-center mb-16">
-          <p className="text-[11px] tracking-[0.2em] uppercase mb-4 font-bold text-slate-500">
+          <p className="text-[11px] tracking-[0.2em] uppercase mb-4 font-bold text-[#00ff41]/70">
             Processamento Neural
           </p>
           <h2
@@ -101,37 +101,37 @@ export function MagicSection() {
           >
             Análise e conversão
             <br />
-            <span className="text-slate-500">de conteúdo em vídeo.</span>
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#00ff41] to-[#00dd3d]">de conteúdo em vídeo.</span>
           </h2>
         </motion.div>
 
         {/* Terminal card */}
         <motion.div
           variants={itemVariants}
-          className={`rounded-[2rem] overflow-hidden bg-black/40 border transition-all duration-1000 ${
+          className={`rounded-xl overflow-hidden bg-black/40 border transition-all duration-1000 ${
             phase === "typing"
-              ? "border-violet-500/50 shadow-[0_0_80px_rgba(139,92,246,0.3)]"
+              ? "border-[#00ff41]/50 shadow-[0_0_80px_rgba(0,255,65,0.3)]"
               : phase === "done"
-              ? "border-emerald-500/30 shadow-[0_0_40px_rgba(16,185,129,0.15)]"
-              : "border-white/10 shadow-[0_0_40px_rgba(255,255,255,0.03)]"
+              ? "border-[#00ff41]/30 shadow-[0_0_40px_rgba(0,255,65,0.15)]"
+              : "border-[#00ff41]/10 shadow-[0_0_40px_rgba(0,255,65,0.03)]"
           }`}
           role="region"
           aria-labelledby={headingId}
           style={{ backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)" }}
         >
           {/* Title bar */}
-          <div className="px-6 py-4 flex items-center gap-3 border-b border-white/10 bg-white/5" aria-hidden="true">
+          <div className="px-6 py-4 flex items-center gap-3 border-b border-[#00ff41]/10 bg-[#00ff41]/5" aria-hidden="true">
             <div className="flex gap-2">
               <div className="w-3 h-3 rounded-full bg-red-500/80" />
               <div className="w-3 h-3 rounded-full bg-yellow-500/80" />
-              <div className="w-3 h-3 rounded-full bg-green-500/80" />
+              <div className="w-3 h-3 rounded-full bg-[#00ff41]/80" />
             </div>
-            <span className="text-xs font-mono ml-2 text-slate-400 font-medium tracking-wide">unoduno — gerar_roteiro.ts</span>
+            <span className="text-xs font-mono ml-2 text-[#00ff41]/70 font-medium tracking-wide">unoduno — gerar_roteiro.ts</span>
           </div>
 
           {/* INPUT row */}
-          <div className="px-6 py-5 border-b border-white/5 bg-white/[0.01]">
-            <p className="text-[11px] font-mono font-bold tracking-widest uppercase mb-3 text-violet-400">
+          <div className="px-6 py-5 border-b border-[#00ff41]/10 bg-[#00ff41]/[0.02]">
+            <p className="text-[11px] font-mono font-bold tracking-widest uppercase mb-3 text-[#00ff41]">
               INPUT
             </p>
             <p className="font-mono text-sm text-slate-400 flex items-center gap-2">
@@ -155,13 +155,13 @@ export function MagicSection() {
             <div
               className={`flex items-center gap-2.5 px-5 py-2 rounded-full text-xs font-semibold tracking-wide transition-all duration-300 ${
                 phase === "typing" || phase === "loading"
-                  ? "bg-violet-500/10 text-violet-300 border border-violet-500/30 shadow-[0_0_15px_rgba(139,92,246,0.2)]"
+                  ? "bg-[#00ff41]/10 text-[#00ff41] border border-[#00ff41]/30 shadow-[0_0_15px_rgba(0,255,65,0.2)]"
                   : "bg-white/5 text-slate-500 border border-white/5"
               }`}
             >
               {phase === "loading" || phase === "typing" ? (
                 <svg
-                  className="animate-spin text-violet-400"
+                  className="animate-spin text-[#00ff41]"
                   width="14"
                   height="14"
                   viewBox="0 0 24 24"
@@ -189,7 +189,7 @@ export function MagicSection() {
                   strokeWidth="3"
                   strokeLinecap="round"
                   strokeLinejoin="round"
-                  className="text-emerald-500"
+                  className="text-[#00ff41]"
                 >
                   <polyline points="20 6 9 17 4 12" />
                 </svg>
@@ -204,12 +204,12 @@ export function MagicSection() {
           </div>
 
           {/* OUTPUT row */}
-          <div className="px-5 sm:px-8 py-6 border-t border-white/5 bg-black/40">
+          <div className="px-5 sm:px-8 py-6 border-t border-[#00ff41]/10 bg-black/40">
             <div className="flex items-center gap-3 mb-5">
-              <span className="text-[11px] font-mono font-bold tracking-widest uppercase text-emerald-400">
+              <span className="text-[11px] font-mono font-bold tracking-widest uppercase text-[#00ff41]">
                 OUTPUT
               </span>
-              <span className="text-[10px] font-black tracking-widest px-2.5 py-1 rounded-full bg-emerald-600/20 text-emerald-400 border border-emerald-500/30 uppercase">
+              <span className="text-[10px] font-black tracking-widest px-2.5 py-1 rounded-full bg-[#00ff41]/20 text-[#00ff41] border border-[#00ff41]/30 uppercase">
                 pt-BR
               </span>
             </div>
@@ -239,7 +239,7 @@ export function MagicSection() {
                   </div>
                 ))}
                 {phase === "typing" && linesShown < outputLines.length && (
-                  <span className="blink-cursor inline-block w-2 h-4 bg-violet-400 ml-1 translate-y-1 shadow-[0_0_8px_rgba(139,92,246,0.8)]" aria-hidden="true" />
+                  <span className="blink-cursor inline-block w-2 h-4 bg-[#00ff41] ml-1 translate-y-1 shadow-[0_0_8px_rgba(0,255,65,0.8)]" aria-hidden="true" />
                 )}
               </pre>
             </div>
