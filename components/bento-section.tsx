@@ -79,18 +79,18 @@ function FeatureCard({ feature, variants }: { feature: any, variants: any }) {
       onMouseMove={handleMouseMove}
       whileHover={{ scale: 1.02, y: -5 }}
       whileTap={{ scale: 0.98 }}
-      className={`${feature.colSpan} relative rounded-[2rem] p-8 flex flex-col gap-6 cursor-default group overflow-hidden bg-white/[0.02] border border-white/10 transition-all duration-500 shadow-[0_0_40px_rgba(255,255,255,0.02)]`}
+      className={`${feature.colSpan} relative rounded-xl p-8 flex flex-col gap-6 cursor-default group overflow-hidden bg-[#00ff41]/3 border border-[#00ff41]/15 transition-all duration-500 shadow-[0_0_30px_rgba(0,255,65,0.08)]`}
       style={{ backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)" }}
       aria-label={feature.label}
     >
-      {/* Spotlight Glow Effect (Linear Style) */}
+      {/* Spotlight Glow Effect (Neon Green) */}
       <motion.div
-        className="pointer-events-none absolute -inset-px rounded-[2rem] opacity-0 transition duration-300 group-hover:opacity-100 z-0"
+        className="pointer-events-none absolute -inset-px rounded-xl opacity-0 transition duration-300 group-hover:opacity-100 z-0"
         style={{
           background: useMotionTemplate`
             radial-gradient(
               600px circle at ${mouseX}px ${mouseY}px,
-              rgba(139, 92, 246, 0.15),
+              rgba(0, 255, 65, 0.2),
               transparent 80%
             )
           `,
@@ -99,7 +99,7 @@ function FeatureCard({ feature, variants }: { feature: any, variants: any }) {
       
       {/* Icon */}
       <div
-        className="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 bg-white/5 border border-white/10 text-slate-300 group-hover:text-white group-hover:bg-violet-600/20 group-hover:border-violet-500/50 group-hover:scale-110 transition-all duration-300 relative z-10 shadow-[0_0_0_rgba(139,92,246,0)] group-hover:shadow-[0_0_20px_rgba(139,92,246,0.3)]"
+        className="w-12 h-12 rounded-lg flex items-center justify-center shrink-0 bg-[#00ff41]/10 border border-[#00ff41]/20 text-[#00ff41] group-hover:text-white group-hover:bg-[#00ff41]/20 group-hover:border-[#00ff41]/40 group-hover:scale-110 transition-all duration-300 relative z-10 shadow-[0_0_0_rgba(0,255,65,0)] group-hover:shadow-[0_0_20px_rgba(0,255,65,0.3)]"
         aria-hidden="true"
       >
         {feature.icon}
@@ -148,13 +148,13 @@ export function BentoSection() {
       >
         {/* Title */}
         <motion.div variants={itemVariants} className="text-center mb-20">
-          <p className="text-[11px] tracking-[0.2em] uppercase mb-4 font-bold text-slate-400">
+          <p className="text-[11px] tracking-[0.2em] uppercase mb-4 font-bold text-[#00ff41]/70">
             Recursos Principais
           </p>
           <h2 className="font-black text-4xl md:text-5xl lg:text-7xl tracking-tighter text-balance mb-4 text-white leading-[1.05]">
             Plataforma integrada
             <br />
-            <span className="text-slate-500">para gestão de conteúdo.</span>
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#00ff41] to-[#00dd3d]">para gestão de conteúdo.</span>
           </h2>
         </motion.div>
 

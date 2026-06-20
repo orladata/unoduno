@@ -40,14 +40,14 @@ const legalLinks = [
 
 export function Footer() {
   return (
-    <footer className="border-t border-white/10 bg-black" aria-label="Rodapé">
+    <footer className="border-t border-[#00ff41]/10 bg-black" aria-label="Rodapé">
       <div className="max-w-6xl mx-auto px-6 py-12">
         {/* Top row */}
         <div className="flex flex-col sm:flex-row items-center justify-between gap-6 mb-8">
           {/* Brand */}
           <a
             href="#inicio"
-            className="font-black text-white tracking-tighter text-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 rounded-sm hover:text-violet-400 transition-colors"
+            className="font-black text-white tracking-tighter text-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00ff41] rounded-sm hover:text-[#00ff41] transition-colors"
           >
             unoduno
           </a>
@@ -61,7 +61,7 @@ export function Footer() {
                 aria-label={social.label}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center justify-center w-12 h-12 rounded-full bg-white/5 border border-white/10 text-slate-400 transition-all duration-300 hover:bg-violet-600/20 hover:text-violet-400 hover:border-violet-500/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500"
+                className="flex items-center justify-center w-12 h-12 rounded-lg bg-[#00ff41]/10 border border-[#00ff41]/20 text-slate-400 transition-all duration-300 hover:bg-[#00ff41]/20 hover:text-[#00ff41] hover:border-[#00ff41]/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00ff41]"
               >
                 {social.icon}
               </a>
@@ -70,7 +70,7 @@ export function Footer() {
         </div>
 
         {/* Bottom row */}
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-8 border-t border-white/10">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-8 border-t border-[#00ff41]/10">
           <p className="text-[13px] font-medium text-slate-500">
             &copy; 2026 Unoduno — Todos os direitos reservados
           </p>
@@ -81,14 +81,14 @@ export function Footer() {
               <Link
                 key={link.label}
                 href={link.href as "/termos" | "/privacidade"}
-                className="text-[13px] font-medium text-slate-500 transition-colors duration-200 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 rounded-sm"
+                className="text-[13px] font-medium text-slate-500 transition-colors duration-200 hover:text-[#00ff41] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00ff41] rounded-sm"
               >
                 {link.label}
               </Link>
             ))}
             <a
               href="mailto:oi@unoduno.com"
-              className="text-[13px] font-medium text-slate-500 transition-colors duration-200 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 rounded-sm"
+              className="text-[13px] font-medium text-slate-500 transition-colors duration-200 hover:text-[#00ff41] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00ff41] rounded-sm"
             >
               oi@unoduno.com
             </a>

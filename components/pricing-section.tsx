@@ -144,8 +144,8 @@ export function PricingSection() {
       className="py-32 px-6 max-w-6xl mx-auto relative overflow-hidden"
       aria-label="Preços"
     >
-      {/* Background radial glow */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-violet-600/10 rounded-full blur-[140px] pointer-events-none -z-10" />
+      {/* Background radial glow - Neon Green */}
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-[#00ff41]/8 rounded-full blur-[140px] pointer-events-none -z-10" />
 
       <motion.div
         variants={containerVariants}
@@ -155,13 +155,13 @@ export function PricingSection() {
       >
         {/* Header */}
         <motion.div variants={itemVariants} className="text-center mb-16 relative z-10">
-          <p className="text-[11px] tracking-[0.2em] uppercase mb-4 font-bold text-violet-400">
+          <p className="text-[11px] tracking-[0.2em] uppercase mb-4 font-bold text-[#00ff41]/70">
             Escalabilidade Ilimitada
           </p>
           <h2 className="font-black text-4xl md:text-5xl lg:text-6xl tracking-tighter text-balance mb-4 text-white leading-[1.05]">
             Planos feitos para criadores.
             <br />
-            <span className="text-slate-500">Do primeiro viral ao império.</span>
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#00ff41] to-[#00dd3d]">Do primeiro viral ao império.</span>
           </h2>
           <p className="text-sm md:text-base text-slate-400 max-w-lg mx-auto leading-relaxed">
             Experimente de graça. Escolha o plano ideal para a sua necessidade e desbloqueie o arsenal de inteligência artificial completo da Unoduno.
@@ -200,17 +200,17 @@ export function PricingSection() {
                 key={pkg.name}
                 variants={itemVariants}
                 whileHover={{ y: -8 }}
-                className={`rounded-[2rem] p-8 flex flex-col justify-between relative group ${
+                className={`rounded-xl p-8 flex flex-col justify-between relative group ${
                   pkg.popular 
-                    ? "bg-[#0f0f15]/90 border border-violet-500/40 shadow-[0_0_40px_rgba(124,58,237,0.1)]" 
-                    : "bg-white/[0.02] border border-white/10"
+                    ? "bg-[#00ff41]/8 border border-[#00ff41]/40 shadow-[0_0_40px_rgba(0,255,65,0.15)]" 
+                    : "bg-white/[0.02] border border-[#00ff41]/10"
                 }`}
                 style={{ backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)" }}
               >
                 {/* Popular Badge */}
                 {pkg.popular && (
-                  <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 px-4 py-1 bg-violet-600 rounded-full shadow-lg">
-                    <span className="text-[10px] uppercase font-extrabold tracking-widest text-white">
+                  <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 px-4 py-1 bg-[#00ff41] rounded-full shadow-lg">
+                    <span className="text-[10px] uppercase font-extrabold tracking-widest text-black">
                       {pkg.badge}
                     </span>
                   </div>
@@ -233,7 +233,7 @@ export function PricingSection() {
                     </span>
                     <span className="text-xs text-slate-400 mb-1 font-medium">/mês</span>
                   </div>
-                  <p className="text-[11px] text-violet-400 mt-2 font-semibold">
+                  <p className="text-[11px] text-[#00ff41] mt-2 font-semibold">
                     {pkg.amount === 0 ? "Acesso imediato" : "Cancele quando quiser"}
                   </p>
                 </div>
@@ -258,7 +258,7 @@ export function PricingSection() {
                         strokeLinejoin="round"
                         className={`shrink-0 mt-[2px] ${
                           feature.included 
-                            ? pkg.popular ? "text-violet-400" : "text-white"
+                            ? pkg.popular ? "text-[#00ff41]" : "text-white"
                             : "text-slate-700"
                         }`}
                         aria-hidden="true"
@@ -275,10 +275,10 @@ export function PricingSection() {
                   type="button"
                   onClick={() => handleCheckout(pkg.amount, pkg.name)}
                   disabled={loadingPkg !== null}
-                  className={`w-full h-12 rounded-xl text-sm font-bold tracking-wide active:scale-95 transition-all duration-300 flex items-center justify-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 ${
+                  className={`w-full h-12 rounded-lg text-sm font-bold tracking-wide active:scale-95 transition-all duration-300 flex items-center justify-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00ff41] focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 ${
                     pkg.btnStyle === "primary"
-                      ? "bg-white text-black hover:bg-neutral-100 shadow-[0_0_20px_rgba(255,255,255,0.1)] group-hover:shadow-[0_0_30px_rgba(255,255,255,0.25)] disabled:bg-neutral-300"
-                      : "bg-white/5 text-white hover:bg-white/10 border border-white/10 disabled:opacity-50"
+                      ? "bg-[#00ff41] text-black hover:bg-[#00ff41]/90 shadow-[0_0_20px_rgba(0,255,65,0.3)] group-hover:shadow-[0_0_30px_rgba(0,255,65,0.5)] disabled:bg-[#00ff41]/50"
+                      : "bg-[#00ff41]/10 text-[#00ff41] hover:bg-[#00ff41]/20 border border-[#00ff41]/30 disabled:opacity-50"
                   }`}
                 >
                   {isPkgLoading ? (
