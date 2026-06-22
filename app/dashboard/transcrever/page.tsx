@@ -220,9 +220,9 @@ export default function TranscreverPage() {
 
         <div
           className="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium"
-          style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", color: "var(--text-muted)" }}
+          style={{ background: "rgba(0,255,65,0.08)", border: "1px solid rgba(0,255,65,0.15)", color: "#00ff41" }}
         >
-          <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
+          <span className="w-1.5 h-1.5 rounded-full bg-[#00ff41] animate-pulse" />
           Transcritor
         </div>
       </div>
@@ -233,7 +233,7 @@ export default function TranscreverPage() {
           {/* Title */}
           <motion.div variants={item} className="mb-8">
             <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
-              <span className="gradient-text-violet">Transcritor</span> Inteligente
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#00ff41] to-[#00dd3d]">Transcritor</span> Inteligente
             </h1>
             <p className="text-sm text-white/35 mt-1.5">
               Cole o link do vídeo, receba a transcrição exata e corrija com o Gemini.
@@ -243,7 +243,7 @@ export default function TranscreverPage() {
           {/* Input Form */}
           <motion.form variants={item} onSubmit={handleFetchTranscript} className="mb-6">
             <div className={`relative rounded-2xl transition-all duration-300 ${url ? "glow-ring" : ""}`}>
-              <div className="flex items-center gap-3 bg-white/[0.04] border border-white/10 rounded-2xl px-5 py-4 focus-within:border-cyan-500/40 focus-within:bg-white/[0.06] transition-all duration-300 hover:border-white/15">
+              <div className="flex items-center gap-3 bg-white/[0.04] border border-[#00ff41]/10 rounded-2xl px-5 py-4 focus-within:border-[#00ff41]/40 focus-within:bg-[#00ff41]/5 transition-all duration-300 hover:border-[#00ff41]/15">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-white/25 shrink-0">
                   <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
                   <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
@@ -294,8 +294,8 @@ export default function TranscreverPage() {
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
                     <div className="absolute bottom-3 left-3 flex items-center gap-2">
-                      <div className="w-6 h-6 rounded-full bg-cyan-600 flex items-center justify-center">
-                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5">
+                      <div className="w-6 h-6 rounded-full bg-[#00ff41] flex items-center justify-center">
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="black" strokeWidth="2.5">
                           <path d="M12 20h9" /><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
                         </svg>
                       </div>
@@ -312,7 +312,7 @@ export default function TranscreverPage() {
               type="submit"
               disabled={phase === "fetching" || phase === "refining" || !url}
               id="transcriber-submit-btn"
-              className="w-full mt-3 bg-white text-black font-semibold py-3.5 px-6 rounded-xl hover:bg-white/90 disabled:bg-white/10 disabled:text-white/30 disabled:cursor-not-allowed transition-all duration-200 active:scale-[0.98] flex items-center justify-center gap-2 text-sm"
+              className="w-full mt-3 bg-[#00ff41] text-black font-semibold py-3.5 px-6 rounded-xl hover:bg-[#00ff41]/90 disabled:bg-[#00ff41]/20 disabled:text-white/30 disabled:cursor-not-allowed transition-all duration-200 active:scale-[0.98] flex items-center justify-center gap-2 text-sm"
             >
               {phase === "fetching" ? (
                 <>
@@ -396,8 +396,8 @@ export default function TranscreverPage() {
                 {/* Header */}
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                   <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-cyan-500/15 border border-cyan-500/20 flex items-center justify-center">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#06b6d4" strokeWidth="2.5">
+                    <div className="w-8 h-8 rounded-full bg-[#00ff41]/15 border border-[#00ff41]/20 flex items-center justify-center">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#00ff41" strokeWidth="2.5">
                         <polyline points="20 6 9 17 4 12" />
                       </svg>
                     </div>
@@ -421,9 +421,9 @@ export default function TranscreverPage() {
                 </div>
 
                 {/* Original Transcript Card */}
-                <div className="rounded-2xl overflow-hidden border border-white/[0.08] bg-white/[0.03]">
-                  <div className="flex items-center gap-2 px-5 py-3 border-b border-white/[0.06] bg-cyan-500/[0.06]">
-                    <span className="text-sm font-semibold text-cyan-400 tracking-wide">TRANSCRIÇÃO BRUTA</span>
+                <div className="rounded-2xl overflow-hidden border border-[#00ff41]/[0.15] bg-[#00ff41]/[0.03]">
+                  <div className="flex items-center gap-2 px-5 py-3 border-b border-[#00ff41]/[0.15] bg-[#00ff41]/[0.08]">
+                    <span className="text-sm font-semibold text-[#00ff41] tracking-wide">TRANSCRIÇÃO BRUTA</span>
                   </div>
                   <div className="px-5 py-5 max-h-[450px] overflow-y-auto scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
                     <p className="text-sm text-white/80 leading-[1.8] whitespace-pre-wrap font-mono select-text">
@@ -441,7 +441,7 @@ export default function TranscreverPage() {
                     type="button"
                     onClick={handleRefine}
                     id="transcriber-refine-btn"
-                    className="w-full py-4 rounded-xl font-bold text-sm flex items-center justify-center gap-3 transition-all duration-300 active:scale-[0.98] bg-gradient-to-r from-violet-600 to-blue-600 hover:from-violet-500 hover:to-blue-500 text-white shadow-[0_0_30px_rgba(139,92,246,0.3)] hover:shadow-[0_0_40px_rgba(139,92,246,0.5)]"
+                    className="w-full py-4 rounded-xl font-bold text-sm flex items-center justify-center gap-3 transition-all duration-300 active:scale-[0.98] bg-[#00ff41] text-black hover:bg-[#00ff41]/90 shadow-[0_0_30px_rgba(0,255,65,0.3)] hover:shadow-[0_0_40px_rgba(0,255,65,0.5)]"
                   >
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                       <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
@@ -465,11 +465,11 @@ export default function TranscreverPage() {
                 {/* Header */}
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                   <div className="flex items-center gap-3">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center ${phase === "refining" ? "bg-violet-500/15 border border-violet-500/20" : "bg-green-500/15 border border-green-500/20"}`}>
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center ${phase === "refining" ? "bg-[#00ff41]/15 border border-[#00ff41]/20" : "bg-[#00ff41]/15 border border-[#00ff41]/20"}`}>
                       {phase === "refining" ? (
                         <SpinnerIcon size={14} />
                       ) : (
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#4ade80" strokeWidth="2.5">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#00ff41" strokeWidth="2.5">
                           <polyline points="20 6 9 17 4 12" />
                         </svg>
                       )}
@@ -489,11 +489,11 @@ export default function TranscreverPage() {
                 </div>
 
                 {/* Refined Transcript Card */}
-                <div className="rounded-2xl overflow-hidden border border-violet-500/20 bg-violet-500/[0.04]">
-                  <div className="flex items-center gap-2 px-5 py-3 border-b border-violet-500/10 bg-violet-500/[0.08]">
-                    <span className="text-sm font-semibold text-violet-300 tracking-wide">CORRIGIDA PELO GEMINI</span>
+                <div className="rounded-2xl overflow-hidden border border-[#00ff41]/20 bg-[#00ff41]/[0.04]">
+                  <div className="flex items-center gap-2 px-5 py-3 border-b border-[#00ff41]/15 bg-[#00ff41]/[0.08]">
+                    <span className="text-sm font-semibold text-[#00ff41] tracking-wide">CORRIGIDA PELO GEMINI</span>
                     {phase === "refining" && (
-                      <span className="ml-auto w-1.5 h-1.5 rounded-full bg-violet-400 animate-pulse" />
+                      <span className="ml-auto w-1.5 h-1.5 rounded-full bg-[#00ff41] animate-pulse" />
                     )}
                   </div>
                   <div className="px-5 py-5 max-h-[500px] overflow-y-auto scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent relative">
@@ -526,7 +526,7 @@ export default function TranscreverPage() {
                         a.click()
                         URL.revokeObjectURL(a.href)
                       }}
-                      className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-semibold bg-violet-600 hover:bg-violet-500 text-white transition-all active:scale-[0.98] shadow-[0_0_15px_rgba(139,92,246,0.3)]"
+                      className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-semibold bg-[#00ff41] hover:bg-[#00ff41]/90 text-black transition-all active:scale-[0.98] shadow-[0_0_15px_rgba(0,255,65,0.3)]"
                     >
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                         <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
