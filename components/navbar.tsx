@@ -97,8 +97,8 @@ export function Navbar() {
       >
         <div className={`w-full transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] flex items-center justify-between ${
           scrolled
-            ? "max-w-4xl bg-[#0a0a0a]/70 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.6)] border border-white/[0.08] rounded-full py-2.5 px-6"
-            : "max-w-5xl bg-transparent border border-transparent py-6 px-0"
+            ? "max-w-5xl bg-black/40 backdrop-blur-3xl shadow-[0_0_30px_rgba(0,255,65,0.1)] border border-[#00ff41]/[0.15] rounded-2xl py-3 px-8"
+            : "max-w-6xl bg-transparent border border-transparent py-6 px-0"
         }`}>
           <a
             href="#inicio"
@@ -110,23 +110,16 @@ export function Navbar() {
 
           {/* Desktop nav */}
           {!isDashboard && (
-            <nav className="hidden md:flex items-center gap-2" aria-label="Navegação principal">
+            <nav className="hidden md:flex items-center gap-1" aria-label="Navegação principal">
               {navLinks.map((item) => (
                 <a
                   key={item.label}
                   href={item.href}
-                  className={`relative px-4 py-2.5 rounded-lg text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 group ${
-                    activeSection === item.href ? "text-white" : "text-slate-400 hover:text-white"
+                  className={`relative px-4 py-2 rounded-md text-sm font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00ff41] group ${
+                    activeSection === item.href ? "text-[#00ff41] bg-[#00ff41]/10" : "text-gray-400 hover:text-white hover:bg-white/5"
                   }`}
                 >
                   {item.label}
-                  {activeSection === item.href && (
-                    <motion.div
-                      layoutId="navbar-underline"
-                      className="absolute bottom-1 left-4 right-4 h-[2px] bg-white rounded-full"
-                      transition={{ type: "spring", stiffness: 350, damping: 30 }}
-                    />
-                  )}
                 </a>
               ))}
             </nav>
@@ -145,7 +138,7 @@ export function Navbar() {
             </SignedIn>
             <SignedOut>
               <div className="hidden sm:block">
-                <Link href="/sign-in" className="flex items-center justify-center min-h-[44px] min-w-[100px] text-sm font-semibold px-5 rounded-full transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 bg-white/10 border border-white/10 text-white hover:bg-white hover:text-black active:scale-95">
+                <Link href="/sign-in" className="flex items-center justify-center min-h-[44px] min-w-[100px] text-sm font-semibold px-5 rounded-lg transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00ff41] bg-[#00ff41] border border-[#00ff41] text-black hover:bg-[#00ff41]/90 active:scale-95">
                   Entrar
                 </Link>
               </div>
@@ -153,24 +146,24 @@ export function Navbar() {
 
             {/* Mobile hamburger — 48x48px min touch target compliant */}
             <button
-              className="md:hidden flex flex-col justify-center items-center gap-1.5 w-12 h-12 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 bg-white/5 border border-white/10 active:bg-white/10 transition-colors"
+              className="md:hidden flex flex-col justify-center items-center gap-1.5 w-12 h-12 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00ff41] bg-[#00ff41]/10 border border-[#00ff41]/20 active:bg-[#00ff41]/20 transition-colors"
               aria-label={menuOpen ? "Fechar menu" : "Abrir menu"}
               aria-expanded={menuOpen}
               aria-controls="mobile-menu"
               onClick={() => setMenuOpen((v) => !v)}
             >
               <span
-                className={`block h-[2px] w-5 rounded-full bg-white transition-transform duration-300 ${
+                className={`block h-[2px] w-5 rounded-full bg-[#00ff41] transition-transform duration-300 ${
                   menuOpen ? "translate-y-[8px] rotate-45" : ""
                 }`}
               />
               <span
-                className={`block h-[2px] rounded-full bg-white transition-all duration-300 ${
+                className={`block h-[2px] rounded-full bg-[#00ff41] transition-all duration-300 ${
                   menuOpen ? "w-0 opacity-0" : "w-5 opacity-100"
                 }`}
               />
               <span
-                className={`block h-[2px] w-5 rounded-full bg-white transition-transform duration-300 ${
+                className={`block h-[2px] w-5 rounded-full bg-[#00ff41] transition-transform duration-300 ${
                   menuOpen ? "-translate-y-[8px] -rotate-45" : ""
                 }`}
               />
@@ -193,7 +186,7 @@ export function Navbar() {
             role="dialog"
             aria-label="Menu Mobile"
           >
-            <nav className="flex flex-col flex-1 justify-center gap-8" aria-label="Navegação mobile">
+            <nav className="flex flex-col flex-1 justify-center gap-6" aria-label="Navegação mobile">
               {navLinks.map((item, i) => (
                 <motion.a
                   key={item.label}
@@ -201,11 +194,13 @@ export function Navbar() {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: i * 0.1, type: "spring", stiffness: 300, damping: 24 }}
-                  className="text-4xl font-black tracking-tight text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded-lg p-2 -ml-2"
+                  className={`text-3xl font-bold tracking-tight focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00ff41] rounded-lg p-2 -ml-2 transition-colors ${
+                    activeSection === item.href ? "text-[#00ff41]" : "text-white"
+                  }`}
                   onClick={() => setMenuOpen(false)}
                 >
-                  <span className={`inline-block mr-4 transition-transform ${activeSection === item.href ? "translate-x-0 opacity-100" : "-translate-x-4 opacity-0"}`}>
-                    <span className="block w-2 h-2 rounded-full bg-blue-500" />
+                  <span className={`inline-block mr-3 transition-transform ${activeSection === item.href ? "translate-x-0 opacity-100" : "-translate-x-4 opacity-0"}`}>
+                    <span className="block w-2 h-2 rounded-full bg-[#00ff41]" />
                   </span>
                   {item.label}
                 </motion.a>
@@ -222,7 +217,7 @@ export function Navbar() {
                 <Link
                   href="/sign-in"
                   onClick={() => setMenuOpen(false)}
-                  className="flex items-center justify-center w-full min-h-[56px] text-lg font-semibold rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 bg-white text-black active:scale-[0.98] transition-transform"
+                  className="flex items-center justify-center w-full min-h-[56px] text-lg font-semibold rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00ff41] bg-[#00ff41] text-black active:scale-[0.98] transition-transform"
                 >
                   Entrar na conta
                 </Link>
@@ -231,7 +226,7 @@ export function Navbar() {
                 <Link
                   href="/dashboard"
                   onClick={() => setMenuOpen(false)}
-                  className="flex items-center justify-center w-full min-h-[56px] text-lg font-semibold rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 bg-blue-600 hover:bg-blue-500 text-white active:scale-[0.98] transition-transform"
+                  className="flex items-center justify-center w-full min-h-[56px] text-lg font-semibold rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00ff41] bg-[#00ff41]/20 hover:bg-[#00ff41]/30 text-[#00ff41] active:scale-[0.98] transition-transform"
                 >
                   Ir para Painel
                 </Link>

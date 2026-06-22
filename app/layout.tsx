@@ -91,7 +91,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="pt-BR" suppressHydrationWarning className={`${inter.variable} ${jetbrainsMono.variable} bg-background`}>
-      <body className="font-sans antialiased bg-background text-foreground selection:bg-violet-500/30 selection:text-white">
+      <body className="font-sans antialiased bg-background text-foreground selection:bg-[#00ff41]/30 selection:text-black">
         <ClerkProvider appearance={{ baseTheme: dark }}>
           <ThemeProvider attribute="class" defaultTheme="dark" enableSystem disableTransitionOnChange>
             {children}

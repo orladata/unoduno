@@ -144,14 +144,14 @@ export function HeroSection(): React.ReactElement {
       className="relative flex flex-col items-center min-h-dvh px-6 pt-32 pb-20 text-center overflow-hidden"
       aria-label="Hero"
     >
-      {/* Aurora & Grid Background */}
+      {/* Neon Green Glow Background */}
       <div className="absolute inset-0 -z-10 bg-black" aria-hidden="true">
-        {/* Animated Grid */}
-        <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:40px_40px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)]" />
+        {/* Subtle Grid */}
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,#00ff41_08_1px,transparent_1px),linear-gradient(to_bottom,#00ff41_08_1px,transparent_1px)] bg-[size:60px_60px] [mask-image:radial-gradient(ellipse_70%_60%_at_50%_0%,#000_70%,transparent_100%)] opacity-30" />
         
-        {/* Aurora Glowing Orbs */}
-        <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] rounded-full bg-violet-600/30 blur-[120px] mix-blend-screen gpu-blur will-change-transform" />
-        <div className="absolute top-[-10%] right-[-10%] w-[40%] h-[40%] rounded-full bg-blue-600/20 blur-[100px] mix-blend-screen gpu-blur will-change-transform" />
+        {/* Neon Green Orbs */}
+        <div className="absolute top-[-15%] left-[5%] w-[40%] h-[40%] rounded-full bg-[#00ff41]/20 blur-[150px] mix-blend-screen gpu-blur will-change-transform" />
+        <div className="absolute top-[-5%] right-[0%] w-[35%] h-[35%] rounded-full bg-[#00ff41]/15 blur-[120px] mix-blend-screen gpu-blur will-change-transform" />
       </div>
 
       <motion.div
@@ -163,13 +163,13 @@ export function HeroSection(): React.ReactElement {
         {/* Live Counter Badge (CRO) */}
         <motion.div
           variants={itemVariants}
-          className="inline-flex items-center gap-2 rounded-full px-4 py-1.5 mb-8 bg-white/5 border border-emerald-500/20 backdrop-blur-sm shadow-[0_0_15px_rgba(16,185,129,0.1)]"
+          className="inline-flex items-center gap-2 rounded-lg px-4 py-1.5 mb-8 bg-[#00ff41]/10 border border-[#00ff41]/30 backdrop-blur-sm shadow-[0_0_20px_rgba(0,255,65,0.15)]"
         >
           <span className="relative flex h-2 w-2">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#00ff41] opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-[#00ff41]"></span>
           </span>
-          <span className="text-[11px] tracking-[0.1em] uppercase font-bold text-emerald-100/90">
+          <span className="text-[11px] tracking-[0.1em] uppercase font-bold text-[#00ff41]/90">
             12.458 roteiros gerados esta semana
           </span>
         </motion.div>
@@ -177,11 +177,11 @@ export function HeroSection(): React.ReactElement {
         {/* H1 Typography Overhaul */}
         <motion.h1
           variants={itemVariants}
-          className="text-5xl md:text-7xl lg:text-[6rem] font-black tracking-tighter leading-[1.05] mb-6 text-balance text-transparent bg-clip-text bg-gradient-to-b from-white via-white/90 to-white/60 animate-in fade-in zoom-in duration-1000"
+          className="text-5xl md:text-7xl lg:text-[6rem] font-black tracking-tighter leading-[1.05] mb-6 text-balance text-white"
         >
           Engenharia de conteúdo
           <br />
-          <span className="text-transparent bg-clip-text bg-gradient-to-r from-slate-300 via-slate-100 to-white">impulsionada por IA.</span>
+          <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#00ff41] via-[#00ff41] to-[#00dd3d]">impulsionada por IA.</span>
         </motion.h1>
 
         {/* Subtext */}
@@ -198,10 +198,10 @@ export function HeroSection(): React.ReactElement {
             onSubmit={handleSubmit}
             animate={error ? { x: [-10, 10, -10, 10, 0] } : {}}
             transition={{ duration: 0.4 }}
-            className={`flex flex-col sm:flex-row items-center gap-2 p-1.5 sm:pl-4 rounded-[2rem] sm:rounded-full transition-all duration-300 backdrop-blur-2xl ${
+            className={`flex flex-col sm:flex-row items-center gap-2 p-1.5 sm:pl-4 rounded-xl sm:rounded-full transition-all duration-300 backdrop-blur-2xl ${
               error
                 ? "bg-red-950/20 border border-red-500/50 shadow-[0_0_30px_rgba(239,68,68,0.2)]"
-                : "bg-white/[0.03] border border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.5)] focus-within:bg-white/[0.05] focus-within:border-white/20 hover:border-white/15"
+                : "bg-white/[0.02] border border-[#00ff41]/15 shadow-[0_8px_32px_rgba(0,255,65,0.1)] focus-within:bg-[#00ff41]/5 focus-within:border-[#00ff41]/30 hover:border-[#00ff41]/20"
             }`}
             aria-label="Analisar vídeo do YouTube"
             noValidate
@@ -227,7 +227,7 @@ export function HeroSection(): React.ReactElement {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="group relative overflow-hidden shrink-0 w-full sm:w-auto px-6 py-3 rounded-full text-[14px] font-semibold cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed bg-white text-black hover:bg-neutral-200 transition-all duration-300 active:scale-95 flex items-center justify-center gap-2 shadow-[0_4px_14px_0_rgba(255,255,255,0.1)]"
+              className="group relative overflow-hidden shrink-0 w-full sm:w-auto px-6 py-3 rounded-lg text-[14px] font-semibold cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed bg-[#00ff41] text-black hover:bg-[#00ff41]/90 transition-all duration-300 active:scale-95 flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(0,255,65,0.3)]"
             >
               {isSubmitting ? (
                 <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24" fill="none"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
@@ -256,7 +256,7 @@ export function HeroSection(): React.ReactElement {
                 setIsViralModalOpen(true)
                 if (typeof navigator !== "undefined" && navigator.vibrate) navigator.vibrate(50)
               }}
-              className="px-4 py-1.5 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 text-[12px] font-medium text-slate-200 transition-colors active:scale-95 flex items-center gap-2 shadow-[0_0_15px_rgba(255,255,255,0.05)] hover:border-slate-500/30"
+              className="px-4 py-1.5 rounded-lg bg-[#00ff41]/10 hover:bg-[#00ff41]/20 border border-[#00ff41]/20 text-[12px] font-medium text-[#00ff41] transition-colors active:scale-95 flex items-center gap-2 shadow-[0_0_15px_rgba(0,255,65,0.1)] hover:border-[#00ff41]/40"
             >
               <span>Explorar vídeos em alta</span>
             </button>
@@ -295,33 +295,33 @@ export function HeroSection(): React.ReactElement {
           animate={{ y: 0, opacity: 1 }}
           transition={{ duration: 1, delay: 0.5, type: "spring" }}
         >
-          {/* Subtle Glow behind the mockup */}
-          <div className="absolute inset-0 bg-blue-500/20 blur-[100px] rounded-full scale-75" />
+          {/* Subtle Neon Glow behind the mockup */}
+          <div className="absolute inset-0 bg-[#00ff41]/10 blur-[100px] rounded-full scale-75" />
           
-          <div className="relative mx-auto w-full max-w-4xl rounded-t-3xl border-t border-l border-r border-white/[0.15] bg-white/[0.01] backdrop-blur-[40px] p-4 sm:p-6 shadow-[0_-20px_80px_rgba(0,0,0,0.8)] overflow-hidden" style={{ transform: "perspective(1000px) rotateX(8deg)", transformOrigin: "bottom" }}>
+          <div className="relative mx-auto w-full max-w-4xl rounded-2xl border border-[#00ff41]/20 bg-[#00ff41]/5 backdrop-blur-[40px] p-4 sm:p-6 shadow-[0_0_40px_rgba(0,255,65,0.15),0_-20px_60px_rgba(0,0,0,0.8)] overflow-hidden" style={{ transform: "perspective(1000px) rotateX(5deg)", transformOrigin: "bottom" }}>
             {/* Fake Mac Window Controls */}
             <div className="flex gap-2 mb-6">
-              <div className="w-3 h-3 rounded-full bg-red-500/50" />
-              <div className="w-3 h-3 rounded-full bg-yellow-500/50" />
-              <div className="w-3 h-3 rounded-full bg-green-500/50" />
+              <div className="w-3 h-3 rounded-full bg-red-500/30" />
+              <div className="w-3 h-3 rounded-full bg-yellow-500/30" />
+              <div className="w-3 h-3 rounded-full bg-[#00ff41]/30" />
             </div>
 
-            {/* Fake Dashboard Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="md:col-span-2 h-40 rounded-2xl bg-white/5 border border-white/5 p-4 flex flex-col justify-between">
+            {/* Fake Dashboard Grid - Minimalista */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div className="md:col-span-2 h-40 rounded-xl bg-white/3 border border-[#00ff41]/10 p-4 flex flex-col justify-between">
                 <div className="flex justify-between items-center">
-                  <div className="w-24 h-4 rounded-md bg-white/10 animate-pulse" />
-                  <div className="w-8 h-8 rounded-full bg-blue-500/20 flex items-center justify-center"><div className="w-2 h-2 rounded-full bg-blue-400" /></div>
+                  <div className="w-24 h-4 rounded-md bg-[#00ff41]/20 animate-pulse" />
+                  <div className="w-8 h-8 rounded-full bg-[#00ff41]/15 flex items-center justify-center"><div className="w-2 h-2 rounded-full bg-[#00ff41]" /></div>
                 </div>
                 <div className="space-y-2">
-                  <div className="w-3/4 h-3 rounded bg-white/10" />
-                  <div className="w-1/2 h-3 rounded bg-white/10" />
+                  <div className="w-3/4 h-3 rounded bg-[#00ff41]/15" />
+                  <div className="w-1/2 h-3 rounded bg-[#00ff41]/10" />
                 </div>
               </div>
-              <div className="h-40 rounded-2xl bg-gradient-to-br from-violet-600/20 to-blue-600/20 border border-white/5 p-4 flex flex-col justify-between">
-                <div className="w-10 h-10 rounded-xl bg-white/10 backdrop-blur-md" />
-                <div className="w-full h-2 rounded bg-white/10 mt-auto overflow-hidden">
-                  <div className="w-[60%] h-full bg-blue-400" />
+              <div className="h-40 rounded-xl bg-[#00ff41]/5 border border-[#00ff41]/15 p-4 flex flex-col justify-between">
+                <div className="w-10 h-10 rounded-lg bg-[#00ff41]/10 backdrop-blur-md" />
+                <div className="w-full h-2 rounded-full bg-[#00ff41]/10 mt-auto overflow-hidden">
+                  <div className="w-[60%] h-full bg-[#00ff41]" />
                 </div>
               </div>
             </div>

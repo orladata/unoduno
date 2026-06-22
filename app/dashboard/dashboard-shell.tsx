@@ -26,7 +26,7 @@ export function DashboardShell({ profile, children }: DashboardShellProps) {
   }
 
   return (
-    <div className="min-h-screen bg-[#000000] text-white selection:bg-violet-500/30">
+    <div className="min-h-screen bg-[#000000] text-white selection:bg-[#00ff41]/30 selection:text-black">
       {/* Sidebar */}
       <DashboardSidebar
         creditBalance={profile.credit_balance}
@@ -38,10 +38,10 @@ export function DashboardShell({ profile, children }: DashboardShellProps) {
       {/* Command Palette (global) */}
       <CommandPalette />
 
-      {/* Background glow effects */}
+      {/* Background glow effects - Neon Green */}
       <div className="fixed inset-0 z-0 pointer-events-none">
-        <div className="absolute top-[-15%] left-[10%] w-[35%] h-[35%] rounded-full bg-violet-600/[0.07] blur-[120px]" />
-        <div className="absolute bottom-[-10%] right-[5%] w-[25%] h-[25%] rounded-full bg-blue-500/[0.04] blur-[100px]" />
+        <div className="absolute top-[-15%] left-[10%] w-[35%] h-[35%] rounded-full bg-[#00ff41]/[0.04] blur-[120px]" />
+        <div className="absolute bottom-[-10%] right-[5%] w-[25%] h-[25%] rounded-full bg-[#00ff41]/[0.02] blur-[100px]" />
       </div>
 
       {/* Main content — offset by sidebar width on desktop */}
