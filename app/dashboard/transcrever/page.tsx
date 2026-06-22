@@ -4,6 +4,7 @@ import { useState, useCallback, useRef, useEffect } from "react"
 import { motion, AnimatePresence, Variants } from "framer-motion"
 import Link from "next/link"
 import { exportAsTxt, exportAsMarkdown, exportAsPdf, exportAsDocx, exportAsSrt } from "@/lib/export-transcript"
+import { useTranscriptionHistory } from "@/lib/hooks/use-transcription-history"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -88,6 +89,9 @@ export default function TranscreverPage() {
   // Export menu state
   const [exportOpen, setExportOpen] = useState(false)
   const exportMenuRef = useRef<HTMLDivElement>(null)
+
+  // Transcription history hook
+  const { saveTranscription } = useTranscriptionHistory()
 
   // Refs for auto-scroll
   const refinedRef = useRef<HTMLDivElement>(null)
@@ -193,12 +197,26 @@ export default function TranscreverPage() {
         setRefinedTranscript(accumulated)
       }
 
+      // Save transcription to history
+      try {
+        await saveTranscription({
+          video_id: videoId,
+          title: null,
+          original_transcript: originalTranscript,
+          refined_transcript: accumulated,
+          thumbnail_url: videoId ? `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg` : null,
+        })
+      } catch (saveErr) {
+        console.error("Failed to save transcription:", saveErr)
+        // Don't fail the whole operation if save fails
+      }
+
       setPhase("refined")
     } catch (err) {
       setErrorMsg(err instanceof Error ? err.message : "Erro ao corrigir com Gemini.")
       setPhase("error")
     }
-  }, [originalTranscript, phase])
+  }, [originalTranscript, phase, videoId, saveTranscription])
 
   const handleReset = () => {
     setUrl("")
