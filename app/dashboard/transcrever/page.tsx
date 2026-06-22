@@ -3,6 +3,7 @@
 import { useState, useCallback, useRef, useEffect } from "react"
 import { motion, AnimatePresence, Variants } from "framer-motion"
 import Link from "next/link"
+import { exportAsTxt, exportAsMarkdown, exportAsPdf, exportAsDocx, exportAsSrt } from "@/lib/export-transcript"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -84,6 +85,10 @@ export default function TranscreverPage() {
   const [originalTranscript, setOriginalTranscript] = useState("")
   const [refinedTranscript, setRefinedTranscript] = useState("")
 
+  // Export menu state
+  const [exportOpen, setExportOpen] = useState(false)
+  const exportMenuRef = useRef<HTMLDivElement>(null)
+
   // Refs for auto-scroll
   const refinedRef = useRef<HTMLDivElement>(null)
   const transcriptRef = useRef<HTMLDivElement>(null)
@@ -101,6 +106,20 @@ export default function TranscreverPage() {
       refinedRef.current.scrollIntoView({ behavior: "smooth", block: "start" })
     }
   }, [phase])
+
+  // Close export menu when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (exportMenuRef.current && !exportMenuRef.current.contains(event.target as Node)) {
+        setExportOpen(false)
+      }
+    }
+
+    if (exportOpen) {
+      document.addEventListener("mousedown", handleClickOutside)
+      return () => document.removeEventListener("mousedown", handleClickOutside)
+    }
+  }, [exportOpen])
 
   const handleFetchTranscript = useCallback(
     async (e: React.FormEvent) => {
@@ -189,6 +208,39 @@ export default function TranscreverPage() {
     setOriginalTranscript("")
     setRefinedTranscript("")
   }
+
+  const handleExport = useCallback(
+    async (format: "txt" | "pdf" | "markdown" | "docx" | "srt") => {
+      const content = refinedTranscript || originalTranscript
+      if (!content) return
+
+      const title = `Transcrição ${videoId || "YouTube"}`
+      const timestamp = new Date().toLocaleString("pt-BR")
+
+      try {
+        switch (format) {
+          case "txt":
+            exportAsTxt({ title, content, timestamp })
+            break
+          case "markdown":
+            exportAsMarkdown({ title, content, timestamp })
+            break
+          case "pdf":
+            exportAsPdf({ title, content, timestamp })
+            break
+          case "docx":
+            await exportAsDocx({ title, content, timestamp })
+            break
+          case "srt":
+            exportAsSrt({ title, content, timestamp })
+            break
+        }
+      } catch (error) {
+        console.error(`Erro ao exportar como ${format}:`, error)
+      }
+    },
+    [refinedTranscript, originalTranscript, videoId]
+  )
 
   const currentVideoId = videoId || extractVideoId(url)
 
@@ -508,7 +560,7 @@ export default function TranscreverPage() {
                   </div>
                 </div>
 
-                {/* Download Both */}
+                {/* Download Multiple Formats */}
                 {phase === "refined" && (
                   <motion.div
                     initial={{ opacity: 0 }}
@@ -516,35 +568,65 @@ export default function TranscreverPage() {
                     transition={{ delay: 0.2 }}
                     className="flex flex-col sm:flex-row gap-3 pt-2"
                   >
+                    {/* Refined Transcript Export Dropdown */}
+                    <div className="relative flex-1" ref={exportMenuRef}>
+                      <button
+                        type="button"
+                        onClick={() => setExportOpen(!exportOpen)}
+                        className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-semibold bg-[#00ff41] hover:bg-[#00ff41]/90 text-black transition-all active:scale-[0.98] shadow-[0_0_15px_rgba(0,255,65,0.3)]"
+                      >
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                          <polyline points="7 10 12 15 17 10" />
+                          <line x1="12" y1="15" x2="12" y2="3" />
+                        </svg>
+                        Baixar Corrigida
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <polyline points="6 9 12 15 18 9" />
+                        </svg>
+                      </button>
+
+                      {/* Dropdown Menu */}
+                      <AnimatePresence>
+                        {exportOpen && (
+                          <motion.div
+                            initial={{ opacity: 0, y: -8 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -8 }}
+                            transition={{ duration: 0.15 }}
+                            className="absolute top-full left-0 right-0 mt-2 bg-black border border-[#00ff41]/20 rounded-xl overflow-hidden z-50 shadow-[0_0_30px_rgba(0,255,65,0.2)]"
+                          >
+                            {[
+                              { label: "Texto (.txt)", format: "txt" as const },
+                              { label: "Markdown (.md)", format: "markdown" as const },
+                              { label: "PDF (.pdf)", format: "pdf" as const },
+                              { label: "Word (.docx)", format: "docx" as const },
+                              { label: "Legendas (.srt)", format: "srt" as const },
+                            ].map((item, idx) => (
+                              <motion.button
+                                key={item.format}
+                                initial={{ opacity: 0, x: -10 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                transition={{ delay: idx * 0.05 }}
+                                type="button"
+                                onClick={() => {
+                                  handleExport(item.format)
+                                  setExportOpen(false)
+                                }}
+                                className="w-full px-4 py-3 text-left text-sm text-white/80 hover:text-white hover:bg-[#00ff41]/10 transition-colors border-b border-[#00ff41]/10 last:border-b-0"
+                              >
+                                {item.label}
+                              </motion.button>
+                            ))}
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </div>
+
+                    {/* Original Transcript Quick Download */}
                     <button
                       type="button"
-                      onClick={() => {
-                        const blob = new Blob([refinedTranscript], { type: "text/plain;charset=utf-8" })
-                        const a = document.createElement("a")
-                        a.href = URL.createObjectURL(blob)
-                        a.download = `transcricao_corrigida_${videoId}.txt`
-                        a.click()
-                        URL.revokeObjectURL(a.href)
-                      }}
-                      className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-semibold bg-[#00ff41] hover:bg-[#00ff41]/90 text-black transition-all active:scale-[0.98] shadow-[0_0_15px_rgba(0,255,65,0.3)]"
-                    >
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                        <polyline points="7 10 12 15 17 10" />
-                        <line x1="12" y1="15" x2="12" y2="3" />
-                      </svg>
-                      Baixar Corrigida (.txt)
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const blob = new Blob([originalTranscript], { type: "text/plain;charset=utf-8" })
-                        const a = document.createElement("a")
-                        a.href = URL.createObjectURL(blob)
-                        a.download = `transcricao_original_${videoId}.txt`
-                        a.click()
-                        URL.revokeObjectURL(a.href)
-                      }}
+                      onClick={() => handleExport("txt")}
                       className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-semibold bg-white/[0.06] border border-white/10 text-white/70 hover:text-white hover:bg-white/10 transition-all active:scale-[0.98]"
                     >
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -552,7 +634,7 @@ export default function TranscreverPage() {
                         <polyline points="7 10 12 15 17 10" />
                         <line x1="12" y1="15" x2="12" y2="3" />
                       </svg>
-                      Baixar Original (.txt)
+                      Original (.txt)
                     </button>
                   </motion.div>
                 )}
